@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.control.Tooltip?>
+
+<BorderPane prefHeight="502.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="duanapp.main.MainController"
+            stylesheets="@style.css">
+
+    <top>
+        <HBox alignment="CENTER" spacing="10" styleClass="toolbar" prefHeight="60.0">
+            <!--nut redo-->
+            <Button styleClass="icon-button" onAction="#handleRedo">
+                <graphic>
+                    <ImageView fitWidth="30" fitHeight="30">
+                        <Image url="@icon/redo.png"/>
+                    </ImageView>
+                </graphic>
+                <tooltip>
+                    <Tooltip>
+                        <graphic>
+                            <Label text="Lần sửa trước"/>
+                        </graphic>
+                    </Tooltip>
+                </tooltip>
+            </Button>
+            <!-- nut next -->
+            <Button styleClass="icon-button" onAction="#handleNext">
+                <graphic>
+                    <ImageView fitWidth="30" fitHeight="30">
+                        <Image url="@icon/next.png"/>
+                    </ImageView>
+                </graphic>
+                <tooltip>
+                    <Tooltip>
+                        <graphic>
+                            <Label text="lần sửa sau"/>
+                        </graphic>
+                    </Tooltip>
+                </tooltip>
+            </Button>
+            <Button styleClass="icon-button" onAction="#handleDraw">
+                <graphic>
+                    <ImageView fitWidth="30" fitHeight="30">
+                        <Image url="@icon/pencil.png"/>
+                    </ImageView>
+                </graphic>
+                <tooltip>
+                    <Tooltip>
+                        <graphic>
+                            <Label text="Vẽ"/>
+                        </graphic>
+                    </Tooltip>
+                </tooltip>
+            </Button>
+            <Button styleClass="icon-button" onAction="#handleCrop">
+                <graphic>
+                    <ImageView fitWidth="30" fitHeight="30">
+                        <Image url="@icon/crop.png"/>
+                    </ImageView>
+                </graphic>
+                <tooltip>
+                    <Tooltip>
+                        <graphic>
+                            <Label text="Cắt ảnh"/>
+                        </graphic>
+                    </Tooltip>
+                </tooltip>
+            </Button>
+            <Button styleClass="icon-button" onAction="#handleResize">
+                <graphic>
+                    <ImageView fitWidth="30" fitHeight="30">
+                        <Image url="@icon/resize.png"/>
+                    </ImageView>
+                </graphic>
+                <tooltip>
+                    <Tooltip>
+                        <graphic>
+                            <Label text="Thay đổi kích cỡ"/>
+                        </graphic>
+                    </Tooltip>
+                </tooltip>
+            </Button>
+            <Button styleClass="icon-button" onAction="#handleAdjust">
+                <graphic>
+                    <ImageView fitWidth="30" fitHeight="30">
+                        <Image url="@icon/brightness.png"/>
+                    </ImageView>
+                </graphic>
+                <tooltip>
+                    <Tooltip>
+                        <graphic>
+                            <Label text="Điều chỉnh"/>
+                        </graphic>
+                    </Tooltip>
+                </tooltip>
+            </Button>
+            <Button styleClass="icon-button" onAction="#handleFilter">
+                <graphic>
+                    <ImageView fitWidth="30" fitHeight="30">
+                        <Image url="@icon/fliter.png"/>
+                    </ImageView>
+                </graphic>
+                <tooltip>
+                    <Tooltip>
+                        <graphic>
+                            <Label text="Bộ lọc"/>
+                        </graphic>
+                    </Tooltip>
+                </tooltip>
+            </Button>
+            <Button styleClass="icon-button" onAction="#handleInsert">
+                <graphic>
+                    <ImageView fitWidth="30" fitHeight="30">
+                        <Image url="@icon/insert.png"/>
+                    </ImageView>
+                </graphic>
+                <tooltip>
+                    <Tooltip>
+                        <graphic>
+                            <Label text="Chèn"/>
+                        </graphic>
+                    </Tooltip>
+                </tooltip>
+            </Button>
+            <Button styleClass="icon-button" onAction="#handleAI">
+                <graphic>
+                    <ImageView fitWidth="30" fitHeight="30">
+                        <Image url="@icon/ai.png"/>
+                    </ImageView>
+                </graphic>
+                <tooltip>
+                    <Tooltip>
+                        <graphic>
+                            <Label text="AI"/>
+                        </graphic>
+                    </Tooltip>
+                </tooltip>
+            </Button>
+            <Button styleClass="icon-button" onAction="#handleExit">
+                <graphic>
+                    <ImageView fitWidth="30" fitHeight="30">
+                        <Image url="@icon/exit.png"/>
+                    </ImageView>
+                </graphic>
+                <tooltip>
+                    <Tooltip>
+                        <graphic>
+                            <Label text="Thoát"/>
+                        </graphic>
+                    </Tooltip>
+                </tooltip>
+            </Button>
+        </HBox>
+    </top>
+
+    <center>
+        <StackPane>
+            <!--<ImageView fx:id="mainImageView"
+                       fitHeight="350" fitWidth="600"
+                       preserveRatio="true">
+                <image>
+                    <Image url="@icon/anhsuademo.jpg" />
+                </image>
+            </ImageView>-->
+            <VBox spacing="10" alignment="CENTER" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
+                <Button text="Open Image" onAction="#handleOpenImage"/>
+                <ImageView fx:id="mainImageView" fitWidth="600" fitHeight="400" preserveRatio="true"/>
+            </VBox>
+        </StackPane>
+    </center>
+
+    <bottom>
+        <VBox alignment="CENTER_RIGHT" styleClass="bottom-toolbar" prefHeight="60.0">
+            <Button styleClass="save-button" onAction="#handleSave">
+                <graphic>
+                    <ImageView fitWidth="20" fitHeight="20">
+                        <Image url="@icon/save.png"/>
+                    </ImageView>
+                </graphic>
+            </Button>
+            <Label text="Lưu ảnh" styleClass="save-text"/>
+        </VBox>
+    </bottom>
+</BorderPane>

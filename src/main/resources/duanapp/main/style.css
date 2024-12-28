@@ -1,0 +1,84 @@
+/* Header */
+.header-container {
+    -fx-background-color: #a4d2f2;
+}
+
+.header-button-large {
+    -fx-font-size: 36px;
+    -fx-background-color: #000;
+    -fx-text-fill: #fff;
+    -fx-pref-width: 60px;
+    -fx-pref-height: 60px;
+    -fx-background-radius: 50;
+}
+
+.header-title {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #000;
+}
+
+/* Danh sách ảnh */
+.project-container {
+    -fx-alignment: CENTER;
+}
+
+.project-title {
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-text-fill: #000;
+}
+
+.project-details, .project-updated {
+    -fx-font-size: 12px;
+    -fx-text-fill: #333;
+}
+
+/* Bo tròn cho hình ảnh */
+.image-rounded {
+    -fx-effect: dropshadow(gaussian, #cfcfcf, 5, 0, 0, 0);
+    -fx-background-radius: 25;
+    -fx-border-radius: 25;
+}
+
+.toolbar {
+    -fx-background-color: #e0e0e0;
+    -fx-padding: 10;
+}
+
+.icon-button {
+    -fx-background-color: transparent;
+    -fx-cursor: hand;
+}
+
+.icon-button:hover {
+    -fx-background-color: #d0d0d0;
+}
+
+.icon-button:focused {
+    -fx-border-color: #673ab7;
+    -fx-border-width: 1px;
+    -fx-border-style: dashed;
+}
+
+.save-button {
+    -fx-background-color: #90caf9;
+    -fx-text-fill: #000000;
+    -fx-padding: 10;
+    -fx-cursor: hand;
+    -fx-font-size: 16;
+    -fx-font-weight: bold;
+    -fx-border-radius: 5;
+    -fx-border-width: 1;
+    -fx-border-color: #64b5f6;
+
+}
+
+.save-button:hover {
+    -fx-background-color: #64b5f6;
+}
+
+.bottom-toolbar {
+    -fx-background-color: #e0e0e0;
+    -fx-padding: 10;
+}

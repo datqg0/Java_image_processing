@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane prefHeight="502.0" prefWidth="800.0" stylesheets="@style.css" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/23.0.1" fx:controller="duanapp.main.MyController">
+    <!-- Phần trên (Header màu xanh dương) -->
+    <top>
+        <StackPane styleClass="header-container">
+            <VBox alignment="CENTER" prefHeight="194.0" prefWidth="800.0" spacing="10">
+                <Button fx:id="btnAddProject" ellipsisString="+" styleClass="header-button-large" text="+" textAlignment="CENTER" />
+                <Label styleClass="header-title" text="Dự án mới" />
+            </VBox>
+        </StackPane>
+    </top>
+
+    <!-- Phần dưới (Danh sách ảnh gần đây) -->
+    <center>
+        <FlowPane alignment="CENTER" hgap="50" prefWrapLength="800" styleClass="project-list" vgap="20">
+            <!-- Ảnh 1 -->
+            <VBox spacing="5" styleClass="project-container">
+                <ImageView fx:id="imageProject1" fitHeight="120" fitWidth="200" preserveRatio="true" styleClass="image-rounded" />
+                <Label styleClass="project-title" text="Ảnh 1" />
+                <Label styleClass="project-details" text="18 : 20 - 34mb" />
+                <Label styleClass="project-updated" text="Cập nhật 24/10" />
+            </VBox>
+
+            <!-- Ảnh 2 -->
+            <VBox spacing="5" styleClass="project-container">
+                <ImageView fx:id="imageProject2" fitHeight="120" fitWidth="200" preserveRatio="true" styleClass="image-rounded" />
+                <Label styleClass="project-title" text="Ảnh 2" />
+                <Label styleClass="project-details" text="19 : 30 - 54mb" />
+                <Label styleClass="project-updated" text="Cập nhật 25/10" />
+            </VBox>
+
+            <!-- Ảnh 3 -->
+            <VBox spacing="5" styleClass="project-container">
+                <ImageView fx:id="imageProject3" fitHeight="120" fitWidth="200" preserveRatio="true" styleClass="image-rounded" />
+                <Label styleClass="project-title" text="Ảnh 3" />
+                <Label styleClass="project-details" text="03 : 01 - 64mb" />
+                <Label styleClass="project-updated" text="Cập nhật 03/01" />
+            </VBox>
+        </FlowPane>
+    </center>
+</BorderPane>
