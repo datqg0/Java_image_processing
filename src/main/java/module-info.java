@@ -2,6 +2,10 @@ module duanapp.main {
     requires javafx.controls;
     requires javafx.fxml;
     requires opencv;
+    requires org.apache.httpcomponents.httpclient;
+    requires org.apache.httpcomponents.httpmime;
+    requires org.apache.httpcomponents.httpcore;
+    requires commons.logging;
     requires javafx.web;
     requires java.desktop;
     requires org.controlsfx.controls;

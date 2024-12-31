@@ -1,6 +1,7 @@
 package duanapp.main;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -9,9 +10,12 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javax.imageio.ImageIO;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import java.awt.image.BufferedImage;
+import java.awt.Graphics2D;
 import org.opencv.core.*;
 import org.opencv.imgcodecs.Imgcodecs;
 import javafx.scene.image.ImageView;
@@ -49,8 +53,31 @@ import javafx.scene.image.WritableImage;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
-
 import javafx.stage.Stage;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.Cursor;
+import java.awt.Font;
+import javax.net.ssl.HttpsURLConnection;
+import java.io.*;
+import java.net.*;
+import java.nio.file.*;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.util.EntityUtils;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.util.EntityUtils;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.HttpResponse;
+
 public class MainController {
     static {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
@@ -59,7 +86,7 @@ public class MainController {
     private ImageView mainImageView;
 
     int current_pos =0;
-    public Mat currentImage= Imgcodecs.imread("target\\classes\\duanapp\\main\\icon\\anhsuademo.png",Imgcodecs.IMREAD_UNCHANGED);
+    public Mat currentImage= Imgcodecs.imread("src/main/resources/duanapp/main/icon/anhsuademo.jpg",Imgcodecs.IMREAD_UNCHANGED);
     public ArrayList<Mat> sto = new ArrayList<>();
     // Hiện ảnh nói chung
 
@@ -71,6 +98,8 @@ public class MainController {
 
     @FXML
     private MenuButton resizeOptionsMenu;
+
+    @FXML MenuButton Flip_and_rotate;
 
     @FXML
     private MenuButton fliterOptionsMenu;
@@ -93,6 +122,7 @@ public class MainController {
     @FXML
     public void initialize() {
         // Thêm tất cả các phần mở rộng vào danh sách
+        expandableMenus.add(Flip_and_rotate);
         expandableMenus.add(new_text);
         expandableMenus.add(cropOptionsMenu);
         expandableMenus.add(resizeOptionsMenu);
@@ -120,9 +150,17 @@ public class MainController {
 
         hideAllMenus();
     }
+    protected void mouse_skip () {
+        mainImageView.setOnMousePressed(null);
+        mainImageView.setOnMouseDragged(null);
+        mainImageView.setOnMouseReleased(null);
+        mainImageView.setCursor(Cursor.DEFAULT);
+    }
     WritableImage image = matToImage(currentImage);
     //show u my code
     private void hideAllMenus() {
+        mouse_skip();
+        System.out.println(current_pos);
         for (Region menu : expandableMenus) {
             menu.setVisible(false); // Đặt menu về trạng thái ẩn
         }
@@ -158,7 +196,7 @@ public class MainController {
         try {
             if (file != null) {
                 System.out.println("ok");
-                currentImage = Imgcodecs.imread(file.getAbsolutePath());
+                currentImage = Imgcodecs.imread(file.getAbsolutePath(),Imgcodecs.IMREAD_UNCHANGED);
                 add_action();
                 show_the_images();
             }
@@ -248,6 +286,35 @@ public class MainController {
         stage.setTitle("resize Window");
         stage.setScene(scene);
         stage.show();
+    }
+    @FXML
+    protected void left_rot () {
+        Core.rotate(currentImage, currentImage, Core.ROTATE_90_COUNTERCLOCKWISE);
+        add_action();
+        show_the_images();
+    }
+    @FXML
+    protected void right_rot () {
+        Core.rotate(currentImage, currentImage, Core.ROTATE_90_CLOCKWISE);
+        add_action();
+        show_the_images();
+    }
+    @FXML
+    protected void flip_h () {
+        Core.flip(currentImage, currentImage, 0);
+        add_action();
+        show_the_images();
+    }
+    @FXML
+    protected void flip_v () {
+        Core.flip(currentImage, currentImage, 1);
+        add_action();
+        show_the_images();
+    }
+    @FXML
+    protected void handleflip_and_rotate() {
+        hideAllMenus();
+        Flip_and_rotate.setVisible(true);
     }
     //draw
     @FXML
@@ -386,6 +453,9 @@ public class MainController {
     @FXML
     protected void handleDraw() {
         hideAllMenus();
+        //System.out.println(currentImage.rows()+ " " + currentImage.cols());
+        show_the_images();
+        mainImageView.setCursor(Cursor.CROSSHAIR);
         getsize.setMin(1); // Giá trị tối thiểu
         getsize.setMax(10); // Giá trị tối đa
         getsize.setValue(2); // Giá trị khởi tạo (bạn có thể điều chỉnh)
@@ -663,21 +733,28 @@ public class MainController {
         });
     }
     String add_string = "G";
-    double text_size = 1;
+    double text_size = 10;
+    String text_font = "Arial";
 
     @FXML
     protected void input_string () {
-        Label guide = new Label("nhập text vào ô dưới ");
-
+        Label guide1 = new Label("nhập text vào ô dưới ");
+        Label guide2 =  new Label("nhập cỡ chữ");
         TextField input_text_here = new TextField();
         TextField sizez = new TextField();
         input_text_here.setPromptText("Nhập chuỗi cần chèn :");
+        Label guide3 = new Label("chọn phông chữ");
+        ComboBox<String> comboBox = new ComboBox<>();
+        comboBox.getItems().addAll("Arial", "Times New Roman", "Roboto");
+        comboBox.setValue("Arial"); // Giá trị mặc định
+        input_text_here.setText(add_string);
+        sizez.setText(Double.toString(text_size));
         //Control: button
         Button add = new Button("Đổi chuỗi");
         Stage stage = new Stage();
         VBox layout = new VBox(10);
         layout.setPadding(new Insets(30));
-        layout.getChildren().addAll(guide,input_text_here,sizez,add);
+        layout.getChildren().addAll(guide1,input_text_here,guide2,sizez,guide3,comboBox,add);
         //Scene
         Scene scene = new Scene(layout, 500,500);
         stage.setTitle("đổi chữ");
@@ -686,6 +763,7 @@ public class MainController {
         //Action
         add.setOnAction(event -> {
             try {
+                text_font = comboBox.getValue();
                 add_string = input_text_here.getText();
                 text_size = Double.parseDouble(sizez.getText());
                 stage.close();
@@ -697,8 +775,103 @@ public class MainController {
 
     }
     @FXML
+    public void save_insert_image() {
+        currentImage=reclone.clone();
+        add_action();
+        show_the_images();
+    }
+     // Kênh alpha
+     protected Mat createtemp(int x, int y) {
+         Mat a = clonea.clone();
+         Mat b = reclone.clone();
+         int n = a.rows();
+         int m = a.cols();
+         int p1 = b.rows();
+         int p2 = b.cols();
+         Mat out = b.clone();
+
+         // Kiểm tra số kênh của ảnh
+         int channels = a.channels();  // Số kênh của ảnh (RGB = 3, RGBA = 4)
+
+         for (int i = 0; i < n && i + x < p1; i++) {
+             for (int j = 0; j < m && j + y < p2; j++) {
+                 double[] pixel = a.get(i, j);
+
+                 // Nếu ảnh có 4 kênh (RGBA), kiểm tra kênh alpha
+                 if (channels == 4) {
+                     double alpha = pixel[3];  // Kênh alpha
+                     // Kiểm tra xem phần nền có trong suốt không (alpha = 0)
+                     if (alpha != 0) {
+                         double[] arr = new double[3];
+                         arr[0]=pixel[0];
+                         arr[1]=pixel[1];
+                         arr[2]=pixel[2];
+                         if(i+x>=0&&j+y>=0) {
+                             out.put(i + x, j + y, arr);
+                         }// Di chuyển pixel vào vị trí thích hợp
+                     }
+                 } else if (channels == 3) {
+                     // Nếu ảnh chỉ có 3 kênh (RGB), xử lý bình thường
+                     if(i+x>=0&&j+y>=0) {
+                         out.put(i + x, j + y, pixel);
+                     }
+                 }
+             }
+         }
+         return out;
+     }
+
+
+    Mat clonea = currentImage.clone();
+    Mat reclone = currentImage.clone();
+    @FXML
+    protected void handleInsertimage() {
+        hideAllMenus();
+        //mainImageView.setCursor(Cursor.CROSSHAIR);
+        brightness2.setVisible(true);
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
+        File file = fileChooser.showOpenDialog(mainImageView.getScene().getWindow());
+        try {
+            if (file != null) {
+                clonea = Imgcodecs.imread(file.getAbsolutePath(),Imgcodecs.IMREAD_UNCHANGED);
+            }
+        }
+        catch (Exception e) {
+            System.out.println("Never - Give - Up");
+        }
+        mainImageView.setOnMousePressed(event -> {
+            reclone=currentImage.clone();
+            double imageViewWidth = mainImageView.getFitWidth();
+            double imageViewHeight = mainImageView.getFitHeight();
+
+            // Kích thước gốc của ảnh (Mat)
+            double matWidth = currentImage.cols();
+            double matHeight = currentImage.rows();
+
+            // Tính tỷ lệ co (scale)
+            double scaleX = imageViewWidth / matWidth;
+            double scaleY = imageViewHeight / matHeight;
+            double scale = Math.min(scaleX, scaleY); // Sử dụng tỷ lệ nhỏ nhất để giữ nguyên tỷ lệ ảnh
+
+
+            // Tọa độ chuột trên ImageView
+            double mouseX = event.getX();
+            double mouseY = event.getY();
+
+            // Chuyển đổi về tọa độ gốc của ảnh
+            int roundedX = (int) ((mouseX) / scale);
+            int roundedY = (int) ((mouseY) / scale);
+
+            reclone= createtemp(roundedY,roundedX).clone();
+            WritableImage temppo = matToImage(reclone);
+            mainImageView.setImage(temppo);
+        });
+    }
+    @FXML
     protected void handleInsert() {
         hideAllMenus();
+        //mainImageView.setCursor(Cursor.CROSSHAIR);
         new_text.setVisible(true);
         draw4.setVisible(true);
         mainImageView.setOnMousePressed(event -> {
@@ -722,7 +895,7 @@ public class MainController {
             // Chuyển đổi về tọa độ gốc của ảnh
             int roundedX = (int) ((mouseX) / scale);
             int roundedY = (int) ((mouseY) / scale);
-            Imgproc.putText(
+            /*Imgproc.putText(
                     currentImage,                      // Ảnh gốc
                     add_string,                    // Văn bản để chèn
                     new Point(roundedX, roundedY),        // Vị trí (tọa độ gốc của ảnh)
@@ -730,16 +903,119 @@ public class MainController {
                     text_size,                              // Kích thước font
                     new Scalar(r, g, b),            // Màu chữ (BGR)
                     2                                 // Độ dày ch
-            );
+            );*/
+            BufferedImage buffimage = matToBufferedImage(currentImage);
+            Graphics2D g2d = buffimage.createGraphics();
+
+            // Sử dụng font có thể hỗ trợ tiếng Việt
+            Font font = new Font(text_font, Font.PLAIN, (int)text_size);  // Bạn có thể thay đổi font để phù hợp với tiếng Việt
+            g2d.setFont(font);
+            java.awt.Color textColor = new java.awt.Color(r, g, b);
+            g2d.setColor(textColor);  // Màu chữ
+            g2d.drawString(add_string, roundedX, roundedY);
+            currentImage = bufferedImageToMat(buffimage).clone();
             add_action();
             show_the_images();
         });
     }
+    private BufferedImage matToBufferedImage(Mat mat) {
+        int width = mat.width();
+        int height = mat.height();
+        int channels = mat.channels();
 
-    @FXML
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR);
+        mat.get(0, 0, ((java.awt.image.DataBufferByte) image.getRaster().getDataBuffer()).getData());
+        return image;
+    }
+    private Mat bufferedImageToMat(BufferedImage bufferedImage) {
+        // Lấy thông số về kích thước ảnh
+        int width = bufferedImage.getWidth();
+        int height = bufferedImage.getHeight();
+        Mat mat = currentImage.clone();
+
+        // Lấy dữ liệu pixel từ BufferedImage
+        for (int i=0;i<width;i++) {
+            for (int j=0;j<height;j++) {
+                int rgb = bufferedImage.getRGB(i,j);
+                int red = (rgb >> 16) & 0xFF;   // Lấy kênh Red
+                int green = (rgb >> 8) & 0xFF;  // Lấy kênh Green
+                int blue = rgb & 0xFF;
+                double[] tmp = currentImage.get(j, i);
+                tmp[0] = blue;
+                tmp[1] = green;
+                tmp[2] = red;
+                mat.put(j, i, tmp);
+            }
+        }
+        return mat;
+    }
+
+
+    /*@FXML
     protected void handleExit() {
         showAlert("Thoát ứng dụng...");
         System.exit(0);
+    }*/
+    @FXML
+    protected void handleExit() {
+            Stage currentStage = (Stage) mainImageView.getScene().getWindow();
+            currentStage.close();
+    }
+    @FXML
+    protected void AI () {
+        try {
+            // API URL và API Key
+            String url = "https://api.remove.bg/v1.0/removebg";
+            String apiKey = "381DzVgo7ZQcnznKioPr1uzr";
+
+            // Tạo client HTTP
+            CloseableHttpClient client = HttpClients.createDefault();
+
+            // Tạo yêu cầu POST
+            HttpPost postRequest = new HttpPost(url);
+            postRequest.addHeader("X-Api-Key", apiKey);
+            //file open
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
+            File file = fileChooser.showOpenDialog(mainImageView.getScene().getWindow());
+
+            // Tạo multipart entity và thêm ảnh
+            MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+            builder.addBinaryBody("image_file", new File(file.getAbsolutePath()));
+            builder.addTextBody("size", "auto");
+            HttpEntity multipartEntity = builder.build();
+
+            postRequest.setEntity(multipartEntity);
+
+            // Gửi yêu cầu và nhận phản hồi
+            HttpResponse response = client.execute(postRequest);
+            HttpEntity entity = response.getEntity();
+
+            // Đọc kết quả từ response và lưu vào file
+            InputStream inputStream = entity.getContent();
+            FileOutputStream outputStream = new FileOutputStream(new File("unscreen.png"));
+
+            int byteRead;
+            while ((byteRead = inputStream.read()) != -1) {
+                outputStream.write(byteRead);
+            }
+
+            // Đóng streams
+            inputStream.close();
+            outputStream.close();
+
+            // Xử lý nếu cần (in ra mã trạng thái)
+            System.out.println("Response Code: " + response.getStatusLine().getStatusCode());
+
+            client.close();
+
+            // Chuyển file PNG thành Mat và hiển thị trên JavaFX
+            currentImage = Imgcodecs.imread("unscreen.png",Imgcodecs.IMREAD_UNCHANGED);
+            add_action();
+            show_the_images();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
     private void showAlert(String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
