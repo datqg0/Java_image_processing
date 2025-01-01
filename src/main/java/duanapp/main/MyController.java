@@ -23,6 +23,7 @@ public class MyController {
     private ImageView imageProject1, imageProject2, imageProject3;
     public int got_somthing=0;
     public String gotthis="src/main/resources/duanapp/main/icon/anhsuademo.jpg";
+
     public String oneurl=gotthis,twourl=gotthis,threeurl=gotthis;
     @FXML
     public void initialize() {
@@ -30,7 +31,7 @@ public class MyController {
         loadImages();
 
         // Nút Dự án mới: mở chế độ chỉnh sửa
-        btnAddProject.setOnAction(event -> openEditMode("new"));
+        btnAddProject.setOnAction(event -> openEditMode(gotthis));
 
         // Các dự án gần đây: mở chế độ chỉnh sửa tương ứng
         imageProject1.setOnMouseClicked(event -> openEditMode(oneurl) );
@@ -83,6 +84,9 @@ public class MyController {
             Stage newStage = new Stage();
             newStage.setTitle("View Project");
             newStage.setScene(scene);
+            newStage.setOnHidden(event -> {
+                loadImages();
+            });
             newStage.show();
         }
         catch (Exception e) {
@@ -90,9 +94,12 @@ public class MyController {
         }
     }
     private void openEditMode(String projectName) {
-            String filePath = projectName.replace("file:/", "");
+            String filePath =gotthis;
+            if(projectName!=gotthis) {
+                filePath = projectName.replace("file:/", "");
+                System.out.println(filePath);
+            }
             MainController.default_image= filePath;
-            System.out.println(MainController.default_image);
             openNewView();
             MainController.default_image= gotthis;
     }

@@ -84,7 +84,8 @@ public class MainController {
     }
     @FXML
     private ImageView mainImageView;
-    public static String default_image= "src/main/resources/duanapp/main/icon/anhsuademo.jpg";
+    public static String default_image="";
+    ;
     int current_pos =0;
     public Mat currentImage= Imgcodecs.imread(default_image,Imgcodecs.IMREAD_UNCHANGED);
     public ArrayList<Mat> sto = new ArrayList<>();
