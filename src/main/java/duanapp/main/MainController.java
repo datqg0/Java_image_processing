@@ -84,9 +84,9 @@ public class MainController {
     }
     @FXML
     private ImageView mainImageView;
-
+    public static String default_image= "src/main/resources/duanapp/main/icon/anhsuademo.jpg";
     int current_pos =0;
-    public Mat currentImage= Imgcodecs.imread("src/main/resources/duanapp/main/icon/anhsuademo.jpg",Imgcodecs.IMREAD_UNCHANGED);
+    public Mat currentImage= Imgcodecs.imread(default_image,Imgcodecs.IMREAD_UNCHANGED);
     public ArrayList<Mat> sto = new ArrayList<>();
     // Hiện ảnh nói chung
 
@@ -121,6 +121,7 @@ public class MainController {
 
     @FXML
     public void initialize() {
+        show_the_images();
         // Thêm tất cả các phần mở rộng vào danh sách
         expandableMenus.add(Flip_and_rotate);
         expandableMenus.add(new_text);

@@ -26,24 +26,18 @@
             <VBox spacing="5" styleClass="project-container">
                 <ImageView fx:id="imageProject1" fitHeight="120" fitWidth="200" preserveRatio="true" styleClass="image-rounded" />
                 <Label styleClass="project-title" text="Ảnh 1" />
-                <Label styleClass="project-details" text="18 : 20 - 34mb" />
-                <Label styleClass="project-updated" text="Cập nhật 24/10" />
             </VBox>
 
             <!-- Ảnh 2 -->
             <VBox spacing="5" styleClass="project-container">
                 <ImageView fx:id="imageProject2" fitHeight="120" fitWidth="200" preserveRatio="true" styleClass="image-rounded" />
                 <Label styleClass="project-title" text="Ảnh 2" />
-                <Label styleClass="project-details" text="19 : 30 - 54mb" />
-                <Label styleClass="project-updated" text="Cập nhật 25/10" />
             </VBox>
 
             <!-- Ảnh 3 -->
             <VBox spacing="5" styleClass="project-container">
                 <ImageView fx:id="imageProject3" fitHeight="120" fitWidth="200" preserveRatio="true" styleClass="image-rounded" />
                 <Label styleClass="project-title" text="Ảnh 3" />
-                <Label styleClass="project-details" text="03 : 01 - 64mb" />
-                <Label styleClass="project-updated" text="Cập nhật 03/01" />
             </VBox>
         </FlowPane>
     </center>
