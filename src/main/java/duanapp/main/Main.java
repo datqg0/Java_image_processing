@@ -13,7 +13,7 @@ public class Main extends Application {
         System.out.println("run");
         FXMLLoader loader = new FXMLLoader(getClass().getResource("projects.fxml"));
         Scene scene = new Scene(loader.load());
-        primaryStage.setTitle("Quản lý Dự án");
+        primaryStage.setTitle("MyPhoto");
         primaryStage.setScene(scene);
         primaryStage.show();
     }

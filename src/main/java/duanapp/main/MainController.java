@@ -123,6 +123,7 @@ public class MainController {
     @FXML
     public void initialize() {
         show_the_images();
+        add_action();
         // Thêm tất cả các phần mở rộng vào danh sách
         expandableMenus.add(Flip_and_rotate);
         expandableMenus.add(new_text);
@@ -189,6 +190,7 @@ public class MainController {
     }
     @FXML
     public void handleOpenImage() {
+        hideAllMenus();
         if(sto.size()==0) {
             sto.add(currentImage);
         }
@@ -231,6 +233,7 @@ public class MainController {
     }
     @FXML
     protected void handleRedo() {
+        hideAllMenus();
         if(current_pos>0) {
             current_pos--;
             currentImage=sto.get(current_pos).clone();
@@ -239,6 +242,7 @@ public class MainController {
     }
     @FXML
     protected void handleNext() {
+        hideAllMenus();
         if(current_pos<sto.size()-1) {
             current_pos++;
             currentImage=sto.get(current_pos).clone();
@@ -247,6 +251,7 @@ public class MainController {
     }
     @FXML
     protected void handleResize() {
+        hideAllMenus();
         //Control: label
         Label widthlb = new Label("Width now : " + currentImage.rows());
         Label heightlb = new Label("Height now " + currentImage.cols());
@@ -328,7 +333,7 @@ public class MainController {
         );
 
         // Mặc định tên file ban đầu
-        fileChooser.setInitialFileName("output_image.jpg");
+        fileChooser.setInitialFileName("output_image.png");
 
         // Hiển thị hộp thoại lưu file
         File file = fileChooser.showSaveDialog(mainImageView.getScene().getWindow());
@@ -349,6 +354,7 @@ public class MainController {
     }
     @FXML
     protected void handleFilter() {
+        hideAllMenus();
         //Control: label
         Label widthlb = new Label("Width now : " + currentImage.rows());
         Label heightlb = new Label("Height now " + currentImage.cols());
@@ -438,6 +444,7 @@ public class MainController {
     int r=0,g=0,b=0;
     @FXML
     private void handleColorChange() {
+        hideAllMenus();
         // Lấy màu đã chọn từ ColorPicker
         Color selectedColor = colorPicker.getValue();
 
@@ -455,7 +462,6 @@ public class MainController {
     @FXML
     protected void handleDraw() {
         hideAllMenus();
-        //System.out.println(currentImage.rows()+ " " + currentImage.cols());
         show_the_images();
         mainImageView.setCursor(Cursor.CROSSHAIR);
         getsize.setMin(1); // Giá trị tối thiểu
@@ -515,10 +521,10 @@ public class MainController {
                 for (int j=roundedY-size_of_pen;j<Math.min(roundedY+size_of_pen,matHeight);j++) {
                     if(i<matWidth&&j<matHeight&&i>=0&&j>=0) {
                         //System.out.println("Mouse position: (" + roundedX + ", " + roundedY + ")");
-                        double[] tmp = currentImage.get(j, i);
-                        tmp[0] = b;
-                        tmp[1] = g;
-                        tmp[2] = r;
+                        double[] tmp = currentImage.get(j, i).clone();
+                        tmp[0] = b*opa + (1-opa)*255;
+                        tmp[1] = g*opa + (1-opa)*255;
+                        tmp[2] = r*opa + (1-opa)*255;
                         currentImage.put(j, i, tmp);
                         //System.out.println("run");
                         pixelWriter.setColor(i, j, javafx.scene.paint.Color.rgb(r, g, b,opa));
@@ -528,7 +534,6 @@ public class MainController {
             }
         });
         mainImageView.setOnMouseReleased(event -> {
-            System.out.println("end");
             add_action();
         });
         //show_the_images();
@@ -794,7 +799,7 @@ public class MainController {
 
          // Kiểm tra số kênh của ảnh
          int channels = a.channels();  // Số kênh của ảnh (RGB = 3, RGBA = 4)
-
+        /*
          for (int i = 0; i < n && i + x < p1; i++) {
              for (int j = 0; j < m && j + y < p2; j++) {
                  double[] pixel = a.get(i, j);
@@ -819,6 +824,33 @@ public class MainController {
                      }
                  }
              }
+         }*/
+         int addi=0;
+         int addj=0;
+         for (int i=x-(n/2);i<=x+(n/2);i++) {
+             for (int j=y-(m/2);j<=y+(m/2);j++) {
+                 if(i>=0&&j>=0&&i<p1&&j<p2&&addi<n&&addj<m) {
+                     double[] pixel = a.get(addi, addj);
+                     if (channels == 4) {
+                         if (pixel[3] != 0) {
+                             double[] pixelt = out.get(i, j).clone();
+                             pixelt[0]=pixel[0];
+                             pixelt[1]=pixel[1];
+                             pixelt[2]=pixel[2];
+                             out.put(i,j,pixelt);
+                         }
+                     } else {
+                         double[] pixelt = out.get(i, j).clone();
+                         pixelt[0]=pixel[0];
+                         pixelt[1]=pixel[1];
+                         pixelt[2]=pixel[2];
+                         out.put(i,j,pixelt);
+                     }
+                 }
+                 addj++;
+             }
+             addi++;
+             addj=0;
          }
          return out;
      }
@@ -965,6 +997,7 @@ public class MainController {
     }
     @FXML
     protected void AI () {
+        hideAllMenus();
         try {
             // API URL và API Key
             String url = "https://api.remove.bg/v1.0/removebg";

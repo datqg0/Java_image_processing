@@ -82,7 +82,7 @@ public class MyController {
 
             // Tạo cửa sổ mới để hiển thị view mới
             Stage newStage = new Stage();
-            newStage.setTitle("View Project");
+            newStage.setTitle("JUST EDIT");
             newStage.setScene(scene);
             newStage.setOnHidden(event -> {
                 loadImages();

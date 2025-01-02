@@ -1,27 +1,72 @@
+.background{
+    -fx-background-color: #f0f0f0 ;
+
+}
+
 /* Header */
+@keyframes gradientAnimation {
+    0% {
+        -fx-background-color: #90caf9; /* Màu xanh nhạt */
+    }
+
+    100% {
+        -fx-background-color:  #ffffff; /* Quay lại màu xanh nhạt */
+    }
+}
 .header-container {
-    -fx-background-color: #a4d2f2;
+    /*-fx-background-color: linear-gradient(to right,  #ffffff, #a4d2f2); !* trắng xanh *!*/
+    -fx-background-color: #90caf9; /* Màu ban đầu */
+    -fx-padding: 10px; /* Thêm padding để tạo khoảng cách */
+    -fx-border-radius: 20px; /* Bo tròn góc */
+    -fx-background-radius: 35px; /* Bo tròn góc nền */
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.1), 10, 0.5, 0, 2); /* Hiệu ứng bóng đổ nhẹ */
+    -fx-animation: gradientAnimation 5s infinite  ; /* Áp dụng hiệu ứng chuyển màu liên tục */
 }
 
 .header-button-large {
-    -fx-font-size: 36px;
-    -fx-background-color: #000;
-    -fx-text-fill: #fff;
-    -fx-pref-width: 60px;
-    -fx-pref-height: 60px;
-    -fx-background-radius: 50;
+    -fx-font-size: 40px; /* Đặt kích thước font chữ là 36 pixel */
+    -fx-background-color: #000; /* Đặt màu nền của nút là màu đen (#000) */
+    -fx-text-fill: #fff; /* Đặt màu chữ (text) là màu trắng (#fff) */
+    -fx-pref-width: 60px; /* Đặt chiều rộng ưu tiên của nút là 60 pixel */
+    -fx-pref-height: 60px; /* Đặt chiều cao ưu tiên của nút là 60 pixel */
+    -fx-background-radius: 20; /* Đặt độ bo tròn của nền nút là 10, tạo hình vuông bo tròn 4 góc */
+    -fx-cursor: hand;
 }
 
 .header-title {
-    -fx-font-size: 28px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #000;
+    -fx-font-size: 28px; /* Kích thước font chữ */
+    -fx-font-weight: bold; /* Độ đậm của font */
+    -fx-text-fill: #333333; /* Màu chữ tối giản (xám đậm) */
+    -fx-alignment: center; /* Căn giữa văn bản */
+    -fx-padding: 10px; /* Khoảng cách xung quanh văn bản */
+    -fx-font-family: "Segoe UI", Arial, sans-serif; /* Font chữ dễ đọc */
 }
-
+.project-list {
+    -fx-padding: 20px; /* Khoảng cách giữa nội dung và viền */
+    -fx-border-width: 1px; /* Độ dày viền */
+    -fx-border-radius: 10px; /* Bo tròn góc viền */
+}
 /* Danh sách ảnh */
 .project-container {
+    -fx-background-color: linear-gradient(to right,  #ffffff, #a4d2f2);
     -fx-alignment: CENTER;
+    -fx-cursor: hand;
+    -fx-pref-width: 80px; /* Đặt chiều rộng ưu tiên của nút là 60 pixel */
+    -fx-pref-height: 80px; /* Đặt chiều cao ưu tiên của nút là 60 pixel */
+    -fx-padding: 10px; /* Khoảng cách xung quanh văn bản */
+    -fx-background-radius: 15px; /* Bo tròn góc nền */
+    -fx-border-color: #e0e0e0; /* Viền xám đậm */
+    -fx-border-width: 2px;
+    -fx-border-radius: 15px;
+    -fx-transition: -fx-scale-x 2s linear, -fx-scale-y 2s linear,-fx-background-color 2s linear; /* Hiệu ứng phóng to trong 0.3s */
+
 }
+.project-container:hover {
+    -fx-scale-x: 1.3; /* Phóng to theo chiều ngang */
+    -fx-scale-y: 1.3; /* Phóng to theo chiều dọc */
+    -fx-background-color: linear-gradient(to right, #a4d2f2,  #ffffff);
+}
+
 
 .project-title {
     -fx-font-weight: bold;
@@ -44,41 +89,63 @@
 .toolbar {
     -fx-background-color: #e0e0e0;
     -fx-padding: 10;
+    -fx-background-radius: 35px; /* Bo tròn góc nền */
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.1), 10, 0.5, 0, 2); /* Hiệu ứng bóng đổ nhẹ */
+
+}
+.main-back {
+    -fx-background-color: #f0f0f0;
+    -fx-padding: 20;
 }
 
 .icon-button {
     -fx-background-color: transparent;
     -fx-cursor: hand;
+    -fx-padding: 10px; /* Thêm padding để tạo khoảng cách */
+    -fx-border-radius: 30px; /* Bo tròn góc */
+    -fx-background-radius: 30px; /* Bo tròn góc nền */
+    -fx-transition: -fx-translate-y 0.3s ease; /* Hiệu ứng di chuyển trong 0.3s */
+
 }
 
 .icon-button:hover {
-    -fx-background-color: #d0d0d0;
+    -fx-background-color:#90caf9 ;
+    -fx-translate-y: -5px; /* Di chuyển lên trên 5px */
 }
 
 .icon-button:focused {
     -fx-border-color: #673ab7;
     -fx-border-width: 1px;
     -fx-border-style: dashed;
+    -fx-background-color:#90caf9 ;
+
 }
 
 .save-button {
-    -fx-background-color: #90caf9;
-    -fx-text-fill: #000000;
-    -fx-padding: 10;
+    /*-fx-background-color: #90caf9;*/
+    -fx-background-color: transparent;
     -fx-cursor: hand;
-    -fx-font-size: 16;
-    -fx-font-weight: bold;
-    -fx-border-radius: 5;
-    -fx-border-width: 1;
-    -fx-border-color: #64b5f6;
+    -fx-padding: 10px; /* Thêm padding để tạo khoảng cách */
+    -fx-border-radius: 30px; /* Bo tròn góc */
+    -fx-background-radius: 30px; /* Bo tròn góc nền */
+
+    -fx-transition: -fx-translate-y 0.3s ease; /* Hiệu ứng di chuyển trong 0.3s */
 
 }
 
 .save-button:hover {
-    -fx-background-color: #64b5f6;
+    -fx-background-color:#90caf9 ;
+    -fx-translate-y: -5px; /* Di chuyển lên trên 5px */
+}
+.save-button:focused{
+    -fx-border-color: #673ab7;
+    -fx-border-width: 1px;
+    -fx-border-style: dashed;
+    -fx-background-color:#90caf9 ;
 }
 
 .bottom-toolbar {
     -fx-background-color: #e0e0e0;
-    -fx-padding: 10;
+    -fx-padding: 30;
+    -fx-background-radius: 35px; /* Bo tròn góc nền */
 }
