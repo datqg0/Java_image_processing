@@ -791,7 +791,7 @@ public class MainController {
         input_text_here.setPromptText("Nhập chuỗi cần chèn :");
         Label guide3 = new Label("chọn phông chữ");
         ComboBox<String> comboBox = new ComboBox<>();
-        comboBox.getItems().addAll("Arial", "Times New Roman", "Roboto");
+        comboBox.getItems().addAll("Arial", "Times New Roman", "Roboto","Comic Sans MS");
         comboBox.setValue("Arial"); // Giá trị mặc định
         input_text_here.setText(add_string);
         sizez.setText(Double.toString(text_size));
