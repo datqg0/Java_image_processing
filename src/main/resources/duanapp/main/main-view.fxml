@@ -229,7 +229,7 @@
                             <children>
                                 <VBox alignment="CENTER" prefHeight="200.0" prefWidth="100.0">
                                     <children>
-                                        <Button text="Save" onAction="#save_crop" />
+                                        <Button text="Lưu" onAction="#save_crop" />
                                     </children>
                                 </VBox>
                             </children>
@@ -249,7 +249,7 @@
                                 </VBox>
                                 <VBox alignment="CENTER" prefHeight="200.0" prefWidth="100.0">
                                     <children>
-                                        <Button text="Save" onAction="#save_image" />
+                                        <Button text="Lưu" onAction="#save_image" />
                                     </children>
                                 </VBox>
                             </children>
@@ -272,7 +272,7 @@
                         </HBox>
                         <HBox fx:id="brightness2" alignment="CENTER" prefHeight="30.0" prefWidth="184.0" visible="false">
                             <children>
-                                <Button text="Save" onAction="#save_insert_image" />
+                                <Button text="Lưu" onAction="#save_insert_image" />
                             </children>
                         </HBox>
                     </children>
@@ -296,6 +296,7 @@
                         <ColorPicker fx:id="colorPicker" onAction="#handleColorChange" prefHeight="25.0" prefWidth="100.0" />
                     </children>
                 </HBox>
+                <Button fx:id="draw9" text="Tẩy" onAction="#change_erase" />
             </children>
         </VBox>
     </left>

@@ -115,7 +115,8 @@ public class MainController {
     @FXML
     private ColorPicker colorPicker = new ColorPicker();
 
-
+    @FXML
+    Button draw9;
 
     // Danh sách chứa tất cả các phần mở rộng
     private final List<Region> expandableMenus = new ArrayList<>();
@@ -125,6 +126,7 @@ public class MainController {
         show_the_images();
         add_action();
         // Thêm tất cả các phần mở rộng vào danh sách
+        expandableMenus.add(draw9);
         expandableMenus.add(Flip_and_rotate);
         expandableMenus.add(new_text);
         expandableMenus.add(cropOptionsMenu);
@@ -152,6 +154,18 @@ public class MainController {
 
 
         hideAllMenus();
+    }
+    public int iserase = 0;
+    Mat first_catch = currentImage.clone();
+    @FXML
+    protected void change_erase() {
+        iserase= 1-iserase;
+        if(iserase==1) {
+            draw9.setText("Bỏ Tẩy");
+        }
+        else {
+            draw9.setText("Tẩy");
+        }
     }
     protected void mouse_skip () {
         mainImageView.setOnMousePressed(null);
@@ -201,6 +215,7 @@ public class MainController {
             if (file != null) {
                 System.out.println("ok");
                 currentImage = Imgcodecs.imread(file.getAbsolutePath(),Imgcodecs.IMREAD_UNCHANGED);
+                first_catch=currentImage.clone();
                 add_action();
                 show_the_images();
             }
@@ -481,6 +496,7 @@ public class MainController {
         draw1.setVisible(true);
         draw2.setVisible(true);
         draw4.setVisible(true);
+        draw9.setVisible(true);
         PixelWriter pixelWriter = image.getPixelWriter();
         Pane root = new Pane();
         // Lắng nghe sự thay đổi của slider và cập nhật giá trị của mul
@@ -519,7 +535,7 @@ public class MainController {
             int roundedY = (int) ((mouseY) / scale);
             for (int i=roundedX-size_of_pen;i<Math.min(roundedX+size_of_pen,matWidth);i++) {
                 for (int j=roundedY-size_of_pen;j<Math.min(roundedY+size_of_pen,matHeight);j++) {
-                    if(i<matWidth&&j<matHeight&&i>=0&&j>=0) {
+                    if(i<matWidth&&j<matHeight&&i>=0&&j>=0&&iserase==0) {
                         //System.out.println("Mouse position: (" + roundedX + ", " + roundedY + ")");
                         double[] tmp = currentImage.get(j, i).clone();
                         tmp[0] = b*opa + (1-opa)*255;
@@ -529,6 +545,29 @@ public class MainController {
                         //System.out.println("run");
                         pixelWriter.setColor(i, j, javafx.scene.paint.Color.rgb(r, g, b,opa));
                         mainImageView.setImage(image);
+                    }
+                    else if(i<matWidth&&j<matHeight&&i>=0&&j>=0&&iserase==1) {
+                        if(first_catch.cols()!=currentImage.cols()&&first_catch.rows()!=currentImage.rows()) {
+                            double[] tmp = currentImage.get(j, i).clone();
+                            tmp[0] = 255;
+                            tmp[1] = 255;
+                            tmp[2] = 255;
+                            currentImage.put(j, i, tmp);
+                            //System.out.println("run");
+                            pixelWriter.setColor(i, j, javafx.scene.paint.Color.rgb(255, 255, 255));
+                            mainImageView.setImage(image);
+                        }
+                        else {
+                            double[] tmp = currentImage.get(j, i).clone();
+                            double[] fcarr= first_catch.get(j,i).clone();
+                            tmp[0] = fcarr[0];
+                            tmp[1] = fcarr[1];
+                            tmp[2] = fcarr[2];
+                            currentImage.put(j, i, tmp);
+                            //System.out.println("run");
+                            pixelWriter.setColor(i, j, javafx.scene.paint.Color.rgb((int)fcarr[2],(int)fcarr[1],(int)fcarr[0]));
+                            mainImageView.setImage(image);
+                        }
                     }
                 }
             }

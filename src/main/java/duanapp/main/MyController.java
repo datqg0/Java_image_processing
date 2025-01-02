@@ -3,6 +3,7 @@ import java.io.*;
 import javax.swing.*;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.control.Button;
@@ -15,15 +16,18 @@ import java.io.File;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 public class MyController {
     @FXML
     private Button btnAddProject;
 
     @FXML
     private ImageView imageProject1, imageProject2, imageProject3;
+    public Label time1,time2,time3;
     public int got_somthing=0;
     public String gotthis="src/main/resources/duanapp/main/icon/anhsuademo.jpg";
-
+    SimpleDateFormat sdf = new SimpleDateFormat("HH:mm dd/MM/yyyy");
     public String oneurl=gotthis,twourl=gotthis,threeurl=gotthis;
     @FXML
     public void initialize() {
@@ -61,14 +65,17 @@ public class MyController {
             if (imageFiles.length > 0) {
                 imageProject1.setImage(new Image(imageFiles[0].toURI().toString()));
                 oneurl=imageProject1.getImage().getUrl();
+                time1.setText(sdf.format(new Date(imageFiles[0].lastModified())));
             }
             if (imageFiles.length > 1) {
                 imageProject2.setImage(new Image(imageFiles[1].toURI().toString()));
                 twourl=imageProject2.getImage().getUrl();
+                time2.setText(sdf.format(new Date(imageFiles[1].lastModified())));
             }
             if (imageFiles.length > 2) {
                 imageProject3.setImage(new Image(imageFiles[2].toURI().toString()));
                 threeurl=imageProject3.getImage().getUrl();
+                time3.setText(sdf.format(new Date(imageFiles[2].lastModified())));
             }
 
         } catch (Exception e) {
