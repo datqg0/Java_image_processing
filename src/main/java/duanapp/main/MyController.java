@@ -1,6 +1,8 @@
 package duanapp.main;
 import java.io.*;
 import javax.swing.*;
+
+import javafx.animation.FadeTransition;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -11,6 +13,8 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.fxml.FXMLLoader;
 import java.io.IOException;
+
+import javafx.util.Duration;
 import org.opencv.core.Core;
 import java.io.File;
 import java.net.URL;
@@ -82,22 +86,31 @@ public class MyController {
             e.printStackTrace();
         }
     }
-    private void openNewView() {
+    public void openNewView() {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("main-view.fxml"));
-            Scene scene = new Scene(loader.load());
+            // Tải giao diện chỉnh sửa ảnh từ file FXML
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/duanapp/main/main-view.fxml"));
+            Scene newScene = new Scene(loader.load());
 
-            // Tạo cửa sổ mới để hiển thị view mới
-            Stage newStage = new Stage();
-            newStage.setTitle("JUST EDIT");
-            newStage.setScene(scene);
-            newStage.setOnHidden(event -> {
-                loadImages();
+            // Lấy stage hiện tại
+            Stage currentStage = (Stage) btnAddProject.getScene().getWindow();
+
+            // Tạo hiệu ứng Fade Out cho Scene hiện tại
+            FadeTransition fadeOut = new FadeTransition(Duration.seconds(0.5), currentStage.getScene().getRoot());
+            fadeOut.setFromValue(1.0); // Độ mờ ban đầu
+            fadeOut.setToValue(0.0);   // Độ mờ cuối cùng
+            fadeOut.setOnFinished(event -> {
+                // Chuyển sang Scene mới
+                currentStage.setScene(newScene);
+                // Tạo hiệu ứng Fade In cho Scene mới
+                FadeTransition fadeIn = new FadeTransition(Duration.seconds(0.5), newScene.getRoot());
+                fadeIn.setFromValue(0.0); // Độ mờ ban đầu
+                fadeIn.setToValue(1.0);   // Độ mờ cuối cùng
+                fadeIn.play();
             });
-            newStage.show();
-        }
-        catch (Exception e) {
-            System.err.println("Error" + e);
+            fadeOut.play(); // Bắt đầu hiệu ứng Fade Out
+        } catch (Exception e) {
+            System.err.println("Error: " + e);
         }
     }
     private void openEditMode(String projectName) {

@@ -8,7 +8,7 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane prefHeight="502.0" prefWidth="800.0" stylesheets="@style.css" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/23.0.1" fx:controller="duanapp.main.MyController">
+<BorderPane prefHeight="700.0" prefWidth="1000.0" stylesheets="@style.css" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/23.0.1" fx:controller="duanapp.main.MyController">
     <!-- Phần trên (Header màu xanh dương) -->
     <top>
         <StackPane styleClass="header-container">

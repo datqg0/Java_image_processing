@@ -15,7 +15,7 @@
 <?import javafx.scene.layout.VBox?>
 
 <?import javafx.scene.control.Menu?>
-<BorderPane prefHeight="633.0" prefWidth="941.0" stylesheets="@style.css" xmlns="http://javafx.com/javafx/17.0.6" xmlns:fx="http://javafx.com/fxml/1" fx:controller="duanapp.main.MainController">
+<BorderPane prefHeight="700.0" prefWidth="1000.0" stylesheets="@style.css" xmlns="http://javafx.com/javafx/17.0.6" xmlns:fx="http://javafx.com/fxml/1" fx:controller="duanapp.main.MainController">
 
     <top>
         <VBox>

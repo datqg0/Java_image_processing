@@ -1,4 +1,5 @@
 package duanapp.main;
+import javafx.animation.FadeTransition;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -16,6 +17,8 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import java.awt.image.BufferedImage;
 import java.awt.Graphics2D;
+
+import javafx.util.Duration;
 import org.opencv.core.*;
 import org.opencv.imgcodecs.Imgcodecs;
 import javafx.scene.image.ImageView;
@@ -1031,9 +1034,35 @@ public class MainController {
     }*/
     @FXML
     protected void handleExit() {
+        try {
+            // Tải lại giao diện Projects từ file FXML
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/duanapp/main/projects.fxml"));
+            Scene newScene = new Scene(loader.load());
+
+            // Lấy stage hiện tại
             Stage currentStage = (Stage) mainImageView.getScene().getWindow();
-            currentStage.close();
+
+            // Tạo hiệu ứng Fade Out cho Scene hiện tại
+            FadeTransition fadeOut = new FadeTransition(Duration.seconds(0.5), currentStage.getScene().getRoot());
+            fadeOut.setFromValue(1.0); // Độ mờ ban đầu
+            fadeOut.setToValue(0.0);   // Độ mờ cuối cùng
+            fadeOut.setOnFinished(event -> {
+                // Chuyển sang Scene mới
+                currentStage.setScene(newScene);
+
+                // Tạo hiệu ứng Fade In cho Scene mới
+                FadeTransition fadeIn = new FadeTransition(Duration.seconds(0.5), newScene.getRoot());
+                fadeIn.setFromValue(0.0); // Độ mờ ban đầu
+                fadeIn.setToValue(1.0);   // Độ mờ cuối cùng
+                fadeIn.play();
+            });
+            fadeOut.play(); // Bắt đầu hiệu ứng Fade Out
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlert("Lỗi khi chuyển về giao diện Projects!");
+        }
     }
+
     @FXML
     protected void AI () {
         hideAllMenus();
