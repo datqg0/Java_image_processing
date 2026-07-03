@@ -1,1130 +1,950 @@
 package duanapp.main;
+
 import javafx.animation.FadeTransition;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
+import javafx.scene.Cursor;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.StackPane;
-import javax.imageio.ImageIO;
-import javafx.scene.layout.VBox;
-import javafx.stage.FileChooser;
-import javafx.stage.Stage;
-import java.awt.image.BufferedImage;
-import java.awt.Graphics2D;
-
-import javafx.util.Duration;
-import org.opencv.core.*;
-import org.opencv.imgcodecs.Imgcodecs;
-import javafx.scene.image.ImageView;
-import javafx.scene.image.Image;
-import javafx.stage.FileChooser;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.input.MouseEvent;
-import javafx.scene.paint.Color;
-import org.opencv.imgcodecs.Imgcodecs;
-import org.opencv.core.Mat;
-import java.awt.image.BufferedImage;
-import javax.swing.*;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import javafx.stage.DirectoryChooser;
-import org.opencv.imgproc.*;
-import javafx.application.Application;
-import javafx.scene.Scene;
-import javafx.scene.layout.Pane;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Line;
-import javafx.stage.Stage;
-import javafx.application.Application;
-import javafx.scene.Scene;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.image.PixelReader;
 import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
-import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.StackPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.Cursor;
-import java.awt.Font;
-import javax.net.ssl.HttpsURLConnection;
-import java.io.*;
-import java.net.*;
-import java.nio.file.*;
+import javafx.util.Duration;
 import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.util.EntityUtils;
-import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.util.EntityUtils;
+import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.http.HttpResponse;
+import org.opencv.core.*;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
 
+import java.awt.Font;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.*;
+import java.nio.file.*;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Main controller for the image editing view (main-view.fxml).
+ *
+ * <p>Responsibilities:
+ * <ul>
+ *   <li>Manage the currently displayed image ({@link #currentImage})</li>
+ *   <li>Delegate pure image processing to {@link ImageProcessor}</li>
+ *   <li>Delegate undo/redo state to {@link ImageHistory}</li>
+ *   <li>Handle user interactions (draw, crop, brightness, filters, text, insert)</li>
+ * </ul>
+ */
 public class MainController {
+
+    // =========================================================================
+    // OpenCV native library — path read from .env (OPENCV_LIB_PATH)
+    // =========================================================================
     static {
-        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+        String opencvLibPath = loadEnv("OPENCV_LIB_PATH");
+        try {
+            if (!opencvLibPath.isEmpty()) {
+                // In modern Java, modifying java.library.path at runtime via System.setProperty
+                // has no effect. We must use System.load() with the absolute path to the DLL/SO.
+                String libName = System.mapLibraryName(Core.NATIVE_LIBRARY_NAME);
+                File libFile = new File(opencvLibPath, libName);
+                if (libFile.exists()) {
+                    System.load(libFile.getAbsolutePath());
+                } else {
+                    // Fallback to loadLibrary if the exact file wasn't found (maybe path is wrong)
+                    System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+                }
+            } else {
+                // If no env variable is set, rely on JVM launch arguments
+                System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+            }
+        } catch (UnsatisfiedLinkError e) {
+            System.err.println("[MainController] Không tải được OpenCV native library.");
+            System.err.println("  → Hãy kiểm tra lại OPENCV_LIB_PATH trong file .env");
+            System.err.println("  → Lỗi chi tiết: " + e.getMessage());
+        }
     }
-    @FXML
-    private ImageView mainImageView;
-    public static String default_image="";
-    ;
-    int current_pos =0;
-    public Mat currentImage= Imgcodecs.imread(default_image,Imgcodecs.IMREAD_UNCHANGED);
-    public ArrayList<Mat> sto = new ArrayList<>();
-    // Hiện ảnh nói chung
 
+    // =========================================================================
+    // Constants
+    // =========================================================================
 
-    @FXML
-    private HBox cropOptionsMenu;
-    @FXML
-    private HBox new_text;
+    /** Loaded from .env at startup; falls back to empty string if not found. */
+    private static final String REMOVE_BG_API_URL = "https://api.remove.bg/v1.0/removebg";
+    private static final String REMOVE_BG_API_KEY = loadEnv("REMOVE_BG_API_KEY");
 
-    @FXML
-    private MenuButton resizeOptionsMenu;
+    /** Working directory — used as the base for all relative file paths. */
+    private static final Path WORK_DIR = Paths.get(System.getProperty("user.dir"));
 
-    @FXML MenuButton Flip_and_rotate;
+    /** Path used when no image has been opened yet. */
+    public static String defaultImagePath = "";
 
-    @FXML
-    private MenuButton fliterOptionsMenu;
+    // =========================================================================
+    // FXML fields — injected by FXMLLoader
+    // =========================================================================
 
-    @FXML
-    private MenuButton insertOptionsMenu;
+    @FXML private ImageView mainImageView;
+    /** Bottom-bar thumbnails. */
+    @FXML private ImageView thumbOriginal;
+    @FXML private ImageView thumbCurrent;
 
+    // Toolbar sub-menus / option rows shown contextually
+    @FXML private HBox cropOptionsMenu;
+    @FXML private HBox new_text;
+    @FXML private MenuButton resizeOptionsMenu;
+    @FXML private MenuButton Flip_and_rotate;
+    @FXML private MenuButton fliterOptionsMenu;
+    @FXML private MenuButton insertOptionsMenu;
+    @FXML private HBox draw1;
+    @FXML private HBox draw2;
+    @FXML private HBox draw4;
+    @FXML private HBox brightness1;
+    @FXML private HBox brightness2;
+    @FXML private HBox brightness3;
 
-    @FXML
-    private HBox draw1 ,draw2,draw4,brightness1,brightness2,brightness3;
+    // Drawing controls (also injected from FXML)
+    @FXML private ColorPicker colorPicker = new ColorPicker();
+    @FXML Button draw9;
+    @FXML Slider getsize       = new Slider();   // pen-size slider (fx:id="getsize")
+    @FXML Slider opacity       = new Slider();   // opacity slider  (fx:id="opacity")
+    @FXML Slider briness       = new Slider();   // brightness slider (fx:id="briness")
 
-    @FXML
-    private ColorPicker colorPicker = new ColorPicker();
+    // =========================================================================
+    // State
+    // =========================================================================
 
-    @FXML
-    Button draw9;
+    /** The Mat that is currently being edited. */
+    public Mat currentImage = Imgcodecs.imread(defaultImagePath, Imgcodecs.IMREAD_UNCHANGED);
 
-    // Danh sách chứa tất cả các phần mở rộng
-    private final List<Region> expandableMenus = new ArrayList<>();
+    /** Snapshot of the image right after opening (used by the eraser tool). */
+    private Mat originalSnapshot = currentImage.clone();
+
+    /** Undo / redo history. */
+    private final ImageHistory history = new ImageHistory();
+
+    /** Writable image kept in sync with {@link #currentImage} for fast pixel edits. */
+    private WritableImage writableImage = ImageProcessor.matToWritableImage(currentImage);
+
+    // -- Drawing state --
+    private int   penRed = 0, penGreen = 0, penBlue = 0;
+    private double penSize    = 2.0;
+    private double penOpacity = 1.0;
+    private int   imageScale  = 1;
+    private boolean eraserActive = false;
+
+    // -- Brightness state --
+    private int brightnessLevel = 0;
+
+    // -- Crop state (all -1 = no selection) --
+    private int cropStartRow = -1, cropStartCol = -1;
+    private int cropEndRow   = -1, cropEndCol   = -1;
+    // Anchor point of the crop drag (set on mousePressed, never mutated during drag)
+    private int initialCropRow = -1, initialCropCol = -1;
+
+    /** A pending cropped mat, committed when the user presses "Lưu". */
+    private Mat pendingCrop = currentImage.clone();
+
+    // -- Insert-image state --
+    private Mat insertOverlay   = currentImage.clone(); // the sticker image
+    private Mat insertedPreview = currentImage.clone(); // base + sticker preview
+
+    // -- Insert-text state --
+    private String insertText     = "G";
+    private double insertTextSize = 10;
+    private String insertTextFont = "Arial";
+
+    /** All expandable tool-option regions; hidden when a new tool is selected. */
+    private final List<Region> toolOptionPanels = new ArrayList<>();
+
+    // =========================================================================
+    // Initialisation
+    // =========================================================================
 
     @FXML
     public void initialize() {
-        show_the_images();
-        add_action();
-        // Thêm tất cả các phần mở rộng vào danh sách
-        expandableMenus.add(draw9);
-        expandableMenus.add(Flip_and_rotate);
-        expandableMenus.add(new_text);
-        expandableMenus.add(cropOptionsMenu);
-        expandableMenus.add(resizeOptionsMenu);
-        expandableMenus.add(fliterOptionsMenu);
-        expandableMenus.add(insertOptionsMenu);
-        expandableMenus.add(draw1);
-        expandableMenus.add(draw2);
-        expandableMenus.add(draw4);
-        expandableMenus.add(brightness1);
-        expandableMenus.add(brightness2);
-        expandableMenus.add(brightness3);
+        refreshImageView();
+        saveToHistory();
 
-        // Đặt tất cả các phần mở rộng ban đầu là ẩn
-        // Gắn listener để kiểm tra màu đã chọn
-//        colorToggleGroup.selectedToggleProperty().addListener((observable, oldToggle, newToggle) -> {
-//            if (newToggle != null) {
-//                RadioButton selectedRadioButton = (RadioButton) newToggle;
-//                String selectedColor = selectedRadioButton.getText();
-//                System.out.println("Bạn đã chọn: " + selectedColor);
-//            }
-//        });
-        // Đặt màu mặc định ban đầu cho ColorPicker
+        toolOptionPanels.add(draw9);
+        toolOptionPanels.add(Flip_and_rotate);
+        toolOptionPanels.add(new_text);
+        toolOptionPanels.add(cropOptionsMenu);
+        toolOptionPanels.add(resizeOptionsMenu);
+        toolOptionPanels.add(fliterOptionsMenu);
+        toolOptionPanels.add(insertOptionsMenu);
+        toolOptionPanels.add(draw1);
+        toolOptionPanels.add(draw2);
+        toolOptionPanels.add(draw4);
+        toolOptionPanels.add(brightness1);
+        toolOptionPanels.add(brightness2);
+        toolOptionPanels.add(brightness3);
+
         colorPicker.setValue(Color.BLACK);
-
-
-        hideAllMenus();
+        resetToolbars();
     }
-    public int iserase = 0;
-    Mat first_catch = currentImage.clone();
-    @FXML
-    protected void change_erase() {
-        iserase= 1-iserase;
-        if(iserase==1) {
-            draw9.setText("Bỏ Tẩy");
-        }
-        else {
-            draw9.setText("Tẩy");
-        }
+
+    // =========================================================================
+    // History helpers
+    // =========================================================================
+
+    /** Saves a clone of the current image into the undo/redo history. */
+    public void saveToHistory() {
+        history.push(currentImage);
     }
-    protected void mouse_skip () {
+
+    /** Refreshes the JavaFX ImageView and the current-state thumbnail with the current Mat. */
+    public void refreshImageView() {
+        writableImage = ImageProcessor.matToWritableImage(currentImage);
+        mainImageView.setImage(writableImage);
+        if (thumbCurrent != null) thumbCurrent.setImage(writableImage);
+    }
+
+    // =========================================================================
+    // Toolbar / tool-selection helpers
+    // =========================================================================
+
+    /** Hides all contextual option rows and removes mouse handlers. */
+    private void resetToolbars() {
+        clearMouseHandlers();
+        toolOptionPanels.forEach(panel -> panel.setVisible(false));
+    }
+
+    /** Removes any drag/press/release handlers from the main ImageView. */
+    private void clearMouseHandlers() {
         mainImageView.setOnMousePressed(null);
         mainImageView.setOnMouseDragged(null);
         mainImageView.setOnMouseReleased(null);
         mainImageView.setCursor(Cursor.DEFAULT);
     }
-    WritableImage image = matToImage(currentImage);
-    //show u my code
-    private void hideAllMenus() {
-        mouse_skip();
-        System.out.println(current_pos);
-        for (Region menu : expandableMenus) {
-            menu.setVisible(false); // Đặt menu về trạng thái ẩn
-        }
-    }
-    public void show_the_images() {
-        //System.out.println(current_pos);
-        image = matToImage(currentImage);
-        mainImageView.setImage(image);
-    }
-    public void add_action() {
-        Mat clone = currentImage.clone();
-        current_pos++;
-        if((current_pos)<sto.size()) {
-            sto.set(current_pos,clone);
-        }
-        else {
-            sto.add(clone);
-        }
-        //handle out of memory
-        if(sto.size()>100&&current_pos>0) {
-            sto.remove(0);
-            current_pos--;
-        }
-    }
-    @FXML
-    public void handleOpenImage() {
-        hideAllMenus();
-        if(sto.size()==0) {
-            sto.add(currentImage);
-        }
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
-        File file = fileChooser.showOpenDialog(mainImageView.getScene().getWindow());
-        try {
-            if (file != null) {
-                System.out.println("ok");
-                currentImage = Imgcodecs.imread(file.getAbsolutePath(),Imgcodecs.IMREAD_UNCHANGED);
-                first_catch=currentImage.clone();
-                add_action();
-                show_the_images();
-            }
-        }
-        catch (Exception e) {
-            System.out.println("Never - Give - Up");
-        }
-    }
-    // đổi mat->javafx để show
-    private WritableImage matToImage(Mat mat) {
-        try {
-            int type = BufferedImage.TYPE_BYTE_GRAY;
-            if (mat.channels() > 1) {
-                Mat convertedMat = new Mat();
-                Imgproc.cvtColor(mat, convertedMat, Imgproc.COLOR_BGR2RGB);
-                mat = convertedMat;
-                type = BufferedImage.TYPE_3BYTE_BGR;
-            }
 
-            BufferedImage bufferedImage = new BufferedImage(mat.cols(), mat.rows(), type);
-            byte[] data = new byte[mat.rows() * mat.cols() * mat.channels()];
-            mat.get(0, 0, data);
-            bufferedImage.getRaster().setDataElements(0, 0, mat.cols(), mat.rows(), data);
+    // =========================================================================
+    // File actions
+    // =========================================================================
 
-            return SwingFXUtils.toFXImage(bufferedImage, null);
-        } catch (Exception e) {
-            System.err.println("Error converting Mat to Image: " + e.getMessage());
-            return null;
+    @FXML
+    protected void handleOpenImage() {
+        resetToolbars();
+        if (history.isEmpty()) {
+            history.push(currentImage);
         }
-    }
-    @FXML
-    protected void handleRedo() {
-        hideAllMenus();
-        if(current_pos>0) {
-            current_pos--;
-            currentImage=sto.get(current_pos).clone();
-            show_the_images();
-        }
-    }
-    @FXML
-    protected void handleNext() {
-        hideAllMenus();
-        if(current_pos<sto.size()-1) {
-            current_pos++;
-            currentImage=sto.get(current_pos).clone();
-            show_the_images();
-        }
-    }
-    @FXML
-    protected void handleResize() {
-        hideAllMenus();
-        //Control: label
-        Label widthlb = new Label("Width now : " + currentImage.rows());
-        Label heightlb = new Label("Height now " + currentImage.cols());
-        Label notify = new Label();
 
-        //Textfield
-        TextField width = new TextField();
-        width.setPromptText("Width :");
-
-        TextField height = new TextField();
-        height.setPromptText("Height :");
-        //Control: button
-        Button resize = new Button("resize");
-
-        //Action
-        resize.setOnAction(event ->{
-            try {
-                double w = Double.parseDouble(width.getText());
-                double h = Double.parseDouble(height.getText());
-                Size size = new Size(w, h);
-                Imgproc.resize(currentImage, currentImage, size, 0, 0, Imgproc.INTER_AREA);
-                widthlb.setText("Width now: " + currentImage.rows());
-                heightlb.setText("Height now: "+ currentImage.cols());
-                notify.setText("Successful");
-                notify.setTextFill(Color.GREEN);
-                add_action();
-                show_the_images();
-            }catch(NumberFormatException ex) {
-                System.err.println("Error");
-            }
-        });
-        // Layout
-        Stage stage = new Stage();
-        VBox layout = new VBox(10);
-        layout.setPadding(new Insets(30));
-        layout.getChildren().addAll(widthlb, heightlb,width,height,resize,notify);
-        //Scene
-        Scene scene = new Scene(layout, 500,500);
-        stage.setTitle("resize Window");
-        stage.setScene(scene);
-        stage.show();
-    }
-    @FXML
-    protected void left_rot () {
-        Core.rotate(currentImage, currentImage, Core.ROTATE_90_COUNTERCLOCKWISE);
-        add_action();
-        show_the_images();
-    }
-    @FXML
-    protected void right_rot () {
-        Core.rotate(currentImage, currentImage, Core.ROTATE_90_CLOCKWISE);
-        add_action();
-        show_the_images();
-    }
-    @FXML
-    protected void flip_h () {
-        Core.flip(currentImage, currentImage, 0);
-        add_action();
-        show_the_images();
-    }
-    @FXML
-    protected void flip_v () {
-        Core.flip(currentImage, currentImage, 1);
-        add_action();
-        show_the_images();
-    }
-    @FXML
-    protected void handleflip_and_rotate() {
-        hideAllMenus();
-        Flip_and_rotate.setVisible(true);
-    }
-    //draw
-    @FXML
-    protected void handleSave() {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Chọn nơi lưu ảnh và chỉnh tên");
-        fileChooser.getExtensionFilters().add(
-                new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg")
-        );
-
-        // Mặc định tên file ban đầu
-        fileChooser.setInitialFileName("output_image.png");
-
-        // Hiển thị hộp thoại lưu file
-        File file = fileChooser.showSaveDialog(mainImageView.getScene().getWindow());
+        FileChooser chooser = new FileChooser();
+        chooser.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
+        File file = chooser.showOpenDialog(mainImageView.getScene().getWindow());
 
         if (file != null) {
-            // Lưu ảnh với tên file và đường dẫn người dùng chọn
-            String outputImagePath = file.getAbsolutePath();
-            boolean isSaved = Imgcodecs.imwrite(outputImagePath, currentImage);
-
-            if (isSaved) {
-                System.out.println("Ảnh đã được lưu tại: " + outputImagePath);
-            } else {
-                System.out.println("Không thể lưu ảnh!");
+            currentImage     = Imgcodecs.imread(file.getAbsolutePath(), Imgcodecs.IMREAD_UNCHANGED);
+            originalSnapshot = currentImage.clone();
+            // Update the "original" thumbnail once per file load
+            if (thumbOriginal != null) {
+                thumbOriginal.setImage(ImageProcessor.matToWritableImage(currentImage));
             }
-        } else {
-            System.out.println("Người dùng không chọn nơi lưu!");
+            saveToHistory();
+            refreshImageView();
         }
     }
+
     @FXML
-    protected void handleFilter() {
-        hideAllMenus();
-        //Control: label
-        Label widthlb = new Label("Width now : " + currentImage.rows());
-        Label heightlb = new Label("Height now " + currentImage.cols());
-        Label notify = new Label();
+    protected void handleSave() {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Chọn nơi lưu ảnh và chỉnh tên");
+        chooser.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
+        chooser.setInitialFileName("output_image.png");
 
-        //Textfield
-        TextField width = new TextField();
-        width.setPromptText("Width :");
+        File file = chooser.showSaveDialog(mainImageView.getScene().getWindow());
+        if (file == null) {
+            System.out.println("Người dùng không chọn nơi lưu!");
+            return;
+        }
 
-        TextField height = new TextField();
-        height.setPromptText("Height :");
-        //Control: button
-        Button reverse = new Button("Âm bản");
-        Button black_and_white = new Button("đen trắng");
-        Button filateral_filter = new Button("làm mịn ảnh");
-        Button redoo = new Button("trở lại");
+        boolean saved = Imgcodecs.imwrite(file.getAbsolutePath(), currentImage);
+        if (saved) {
+            System.out.println("Ảnh đã được lưu tại: " + file.getAbsolutePath());
+        } else {
+            showAlert("Không thể lưu ảnh!");
+        }
+    }
 
-        //Action
-        reverse.setOnAction(event ->{
+    // =========================================================================
+    // Undo / Redo
+    // =========================================================================
+
+    @FXML
+    protected void handleUndo() {
+        resetToolbars();
+        history.undo().ifPresent(mat -> {
+            currentImage = mat;
+            refreshImageView();
+        });
+    }
+
+    @FXML
+    protected void handleRedo() {
+        resetToolbars();
+        history.redo().ifPresent(mat -> {
+            currentImage = mat;
+            refreshImageView();
+        });
+    }
+
+    // handleRedo was previously wired to the "undo" toolbar button; keep the
+    // old alias so existing FXML wiring still works.
+    @FXML
+    protected void handleNext() {
+        handleRedo();
+    }
+
+    // =========================================================================
+    // Resize
+    // =========================================================================
+
+    @FXML
+    protected void handleResize() {
+        resetToolbars();
+
+        Label widthLabel  = new Label("Width now : "  + currentImage.cols());
+        Label heightLabel = new Label("Height now : " + currentImage.rows());
+        Label notifyLabel = new Label();
+
+        TextField widthField  = new TextField();
+        widthField.setPromptText("Width :");
+        TextField heightField = new TextField();
+        heightField.setPromptText("Height :");
+
+        Button resizeBtn = new Button("Resize");
+        resizeBtn.setOnAction(event -> {
             try {
-                for (int i = 0; i < currentImage.rows(); i++) {
-                    for (int j = 0; j < currentImage.cols(); j++) {
-                        double[] data = currentImage.get(i, j);
-                        double[] data2 = currentImage.get(i, j);
-                        data2[0] = 255 - data[0];
-                        data2[1] = 255 - data[1];
-                        data2[2] = 255 - data[2];
-                        //System.out.println(data[0]+" "+data2[0]);
-                        currentImage.put(i, j, data2);
-                    }
-                }
-                ///wh
-                add_action();
-                show_the_images();
-            }catch(NumberFormatException ex) {
-                System.err.println("Error");
+                double w = Double.parseDouble(widthField.getText());
+                double h = Double.parseDouble(heightField.getText());
+                Imgproc.resize(currentImage, currentImage, new Size(w, h),
+                               0, 0, Imgproc.INTER_AREA);
+                widthLabel.setText("Width now: "  + currentImage.cols());
+                heightLabel.setText("Height now: " + currentImage.rows());
+                notifyLabel.setText("Thành công!");
+                notifyLabel.setTextFill(Color.GREEN);
+                saveToHistory();
+                refreshImageView();
+            } catch (NumberFormatException ex) {
+                notifyLabel.setText("Kích thước không hợp lệ!");
+                notifyLabel.setTextFill(Color.RED);
             }
         });
-        black_and_white.setOnAction(event ->{
-            try {
-                Imgproc.cvtColor(currentImage, currentImage, Imgproc.COLOR_BGR2GRAY);
-                Mat bwRgbImage = new Mat();
-                Imgproc.cvtColor(currentImage, currentImage, Imgproc.COLOR_GRAY2BGR);
-                ///wh
-                add_action();
-                show_the_images();
-            }catch(NumberFormatException ex) {
-                System.err.println("Error");
-            }
-        });
-        filateral_filter.setOnAction(event ->{
-            try {
-                //có thể cho diều chỉnh nếu còn thời gian
-                Imgproc.medianBlur(currentImage, currentImage, 5);
-                ///wh
-                add_action();
-                show_the_images();
-            }catch(NumberFormatException ex) {
-                System.err.println("Error");
-            }
-        });
-        redoo.setOnAction(event ->{
-            try {
-                handleRedo();
-            }catch(NumberFormatException ex) {
-                System.err.println("Error");
-            }
-        });
-        // Layout
-        Stage stage = new Stage();
-        VBox layout = new VBox(10);
+
+        VBox layout = new VBox(10, widthLabel, heightLabel, widthField, heightField, resizeBtn, notifyLabel);
         layout.setPadding(new Insets(30));
-        layout.getChildren().addAll(reverse,black_and_white,filateral_filter,redoo);
-        //Scene
-        Scene scene = new Scene(layout, 200,250);
-        stage.setTitle("resize Window");
-        stage.setScene(scene);
+        Stage stage = new Stage();
+        stage.setTitle("Thay đổi kích thước");
+        stage.setScene(new Scene(layout, 400, 300));
         stage.show();
     }
-    double mul=2;
-    int got=0;
-    double opa=1;
+
+    // =========================================================================
+    // Flip & Rotate
+    // =========================================================================
+
     @FXML
-    Slider getsize = new Slider();
+    protected void handleflip_and_rotate() {
+        resetToolbars();
+        Flip_and_rotate.setVisible(true);
+    }
+
     @FXML
-    Slider opacity =new Slider();
-    int r=0,g=0,b=0;
+    protected void left_rot() {
+        Core.rotate(currentImage, currentImage, Core.ROTATE_90_COUNTERCLOCKWISE);
+        saveToHistory();
+        refreshImageView();
+    }
+
+    @FXML
+    protected void right_rot() {
+        Core.rotate(currentImage, currentImage, Core.ROTATE_90_CLOCKWISE);
+        saveToHistory();
+        refreshImageView();
+    }
+
+    @FXML
+    protected void flip_h() {
+        Core.flip(currentImage, currentImage, 0);
+        saveToHistory();
+        refreshImageView();
+    }
+
+    @FXML
+    protected void flip_v() {
+        Core.flip(currentImage, currentImage, 1);
+        saveToHistory();
+        refreshImageView();
+    }
+
+    // =========================================================================
+    // Filters
+    // =========================================================================
+
+    @FXML
+    protected void handleFilter() {
+        resetToolbars();
+
+        Button invertBtn  = new Button("Âm bản");
+        Button bwBtn      = new Button("Đen trắng");
+        Button blurBtn    = new Button("Làm mịn ảnh");
+        Button undoBtn    = new Button("Trở lại");
+
+        invertBtn.setOnAction(e -> {
+            currentImage = ImageProcessor.invertColors(currentImage);
+            saveToHistory();
+            refreshImageView();
+        });
+        bwBtn.setOnAction(e -> {
+            currentImage = ImageProcessor.toGrayscale(currentImage);
+            saveToHistory();
+            refreshImageView();
+        });
+        blurBtn.setOnAction(e -> {
+            currentImage = ImageProcessor.applyMedianBlur(currentImage);
+            saveToHistory();
+            refreshImageView();
+        });
+        undoBtn.setOnAction(e -> handleUndo());
+
+        VBox layout = new VBox(10, invertBtn, bwBtn, blurBtn, undoBtn);
+        layout.setPadding(new Insets(20));
+        Stage stage = new Stage();
+        stage.setTitle("Bộ lọc");
+        stage.setScene(new Scene(layout, 200, 220));
+        stage.show();
+    }
+
+    // =========================================================================
+    // Brightness adjustment
+    // =========================================================================
+
+    @FXML
+    protected void handleAdjust() {
+        resetToolbars();
+        brightness1.setVisible(true);
+
+        briness.setMin(-50);
+        briness.setMax(50);
+        briness.setValue(0);
+        briness.setBlockIncrement(2);
+        briness.setMajorTickUnit(2);
+
+        briness.valueProperty().addListener((obs, oldVal, newVal) -> {
+            brightnessLevel = newVal.intValue();
+            previewBrightness();
+        });
+    }
+
+    /**
+     * Applies the current {@link #brightnessLevel} to a temporary clone and
+     * shows it in the ImageView (non-destructive preview).
+     */
+    private void previewBrightness() {
+        Mat preview = ImageProcessor.applyBrightness(currentImage, brightnessLevel);
+        mainImageView.setImage(ImageProcessor.matToWritableImage(preview));
+    }
+
+    /** Commits the brightness change to {@link #currentImage}. Called by "Lưu" button in FXML. */
+    @FXML
+    public void applyBrightness() {
+        currentImage = ImageProcessor.applyBrightness(currentImage, brightnessLevel);
+        brightnessLevel = 0;
+        saveToHistory();
+        refreshImageView();
+    }
+
+    // Keep old FXML binding name working
+    @FXML
+    public void save_image() {
+        applyBrightness();
+    }
+
+    // =========================================================================
+    // Drawing tool
+    // =========================================================================
+
+    @FXML
+    protected void change_erase() {
+        eraserActive = !eraserActive;
+        draw9.setText(eraserActive ? "Bỏ Tẩy" : "Tẩy");
+    }
+
     @FXML
     private void handleColorChange() {
-        hideAllMenus();
-        // Lấy màu đã chọn từ ColorPicker
-        Color selectedColor = colorPicker.getValue();
-
-        // Lấy các thành phần màu (Red, Green, Blue) của màu đã chọn
-        double red = selectedColor.getRed();   // Giá trị đỏ (0.0 - 1.0)
-        double green = selectedColor.getGreen(); // Giá trị xanh lá (0.0 - 1.0)
-        double blue = selectedColor.getBlue();  // Giá trị xanh dương (0.0 - 1.0)
-
-        // Chuyển đổi từ 0-1 sang 0-255 để dễ dàng sử dụng trong các ứng dụng vẽ
-        r = (int) (red * 255);
-        g = (int) (green * 255);
-        b = (int) (blue * 255);
-        // Thực hiện các thao tác khác với giá trị màu, ví dụ: lưu vào biến hoặc sử dụng trong vẽ
+        Color selected = colorPicker.getValue();
+        penRed   = (int) (selected.getRed()   * 255);
+        penGreen = (int) (selected.getGreen() * 255);
+        penBlue  = (int) (selected.getBlue()  * 255);
     }
+
     @FXML
     protected void handleDraw() {
-        hideAllMenus();
-        show_the_images();
+        resetToolbars();
+        refreshImageView();
         mainImageView.setCursor(Cursor.CROSSHAIR);
-        getsize.setMin(1); // Giá trị tối thiểu
-        getsize.setMax(10); // Giá trị tối đa
-        getsize.setValue(2); // Giá trị khởi tạo (bạn có thể điều chỉnh)
-        // Thiết lập bước nhảy (tick unit) giữa các giá trị trên Slider
-        getsize.setBlockIncrement(0.5); // Mỗi lần thay đổi 1 đơn vị
-        getsize.setMajorTickUnit(0.5); // Bước nhảy chính 1 đơn vị
-        opacity.setMin(0); // Giá trị tối thiểu
-        opacity.setMax(1); // Giá trị tối đa
-        opacity.setValue(1); // Giá trị khởi tạo (bạn có thể điều chỉnh)
-        // Thiết lập bước nhảy (tick unit) giữa các giá trị trên Slider
-        opacity.setBlockIncrement(0.1); // Mỗi lần thay đổi 1 đơn vị
+
+        // Pen-size slider
+        getsize.setMin(1);
+        getsize.setMax(10);
+        getsize.setValue(2);
+        getsize.setBlockIncrement(0.5);
+        getsize.setMajorTickUnit(0.5);
+
+        // Opacity slider
+        opacity.setMin(0);
+        opacity.setMax(1);
+        opacity.setValue(1);
+        opacity.setBlockIncrement(0.1);
         opacity.setMajorTickUnit(0.1);
-        mul= getsize.getValue();
-        opa = opacity.getValue();
+
+        penSize    = getsize.getValue();
+        penOpacity = opacity.getValue();
+
+        // Show toolbar rows
         draw1.setVisible(true);
         draw2.setVisible(true);
         draw4.setVisible(true);
         draw9.setVisible(true);
-        PixelWriter pixelWriter = image.getPixelWriter();
-        Pane root = new Pane();
-        // Lắng nghe sự thay đổi của slider và cập nhật giá trị của mul
-        getsize.valueProperty().addListener((observable, oldValue, newValue) -> {
-            mul = newValue.doubleValue(); // Cập nhật giá trị của mul từ slider
-            System.out.println("mul: " + mul); // Kiểm tra giá trị mul
-        });
-        opacity.valueProperty().addListener((observable, oldValue, newValue) -> {
-            opa = newValue.doubleValue(); // Cập nhật giá trị của mul từ slider
-            System.out.println("opa: " + opa); // Kiểm tra giá trị mul
-        });
+
+        PixelWriter pixelWriter = writableImage.getPixelWriter();
+
+        getsize.valueProperty().addListener((obs, oldVal, newVal) -> penSize = newVal.doubleValue());
+        opacity.valueProperty().addListener((obs, oldVal, newVal) -> penOpacity = newVal.doubleValue());
+
         mainImageView.setOnMouseDragged(event -> {
-            double imageViewWidth = mainImageView.getFitWidth();
-            double imageViewHeight = mainImageView.getFitHeight();
+            double viewW = mainImageView.getFitWidth();
+            double viewH = mainImageView.getFitHeight();
+            double matW  = currentImage.cols();
+            double matH  = currentImage.rows();
 
-            // Kích thước gốc của ảnh (Mat)
-            double matWidth = currentImage.cols();
-            double matHeight = currentImage.rows();
+            double scaleX = viewW / matW;
+            double scaleY = viewH / matH;
+            double scale  = Math.min(scaleX, scaleY);
 
-            // Tính tỷ lệ co (scale)
-            double scaleX = imageViewWidth / matWidth;
-            double scaleY = imageViewHeight / matHeight;
-            double scale = Math.min(scaleX, scaleY); // Sử dụng tỷ lệ nhỏ nhất để giữ nguyên tỷ lệ ảnh
-            got=Math.max((int)Math.round(scaleX),((int)Math.round(scaleY)));
-            got=Math.max(1,got);
-            int size_of_pen=(int)(got*mul);
+            imageScale = Math.max(1, Math.max((int) Math.round(scaleX), (int) Math.round(scaleY)));
+            int brushRadius = (int) (imageScale * penSize);
 
-            // Tính phần dư (offset) nếu preserveRatio = true
+            // Subtract the blank margin created by preserveRatio centering
+            double[] offset = computeImageOffset();
+            int centerX = (int) ((event.getX() - offset[0]) / scale);
+            int centerY = (int) ((event.getY() - offset[1]) / scale);
 
-            // Tọa độ chuột trên ImageView
-            double mouseX = event.getX();
-            double mouseY = event.getY();
+            for (int px = centerX - brushRadius; px < Math.min(centerX + brushRadius, matW); px++) {
+                for (int py = centerY - brushRadius; py < Math.min(centerY + brushRadius, matH); py++) {
+                    if (px < 0 || py < 0 || px >= matW || py >= matH) continue;
 
-            // Chuyển đổi về tọa độ gốc của ảnh
-            int roundedX = (int) ((mouseX) / scale);
-            int roundedY = (int) ((mouseY) / scale);
-            for (int i=roundedX-size_of_pen;i<Math.min(roundedX+size_of_pen,matWidth);i++) {
-                for (int j=roundedY-size_of_pen;j<Math.min(roundedY+size_of_pen,matHeight);j++) {
-                    if(i<matWidth&&j<matHeight&&i>=0&&j>=0&&iserase==0) {
-                        //System.out.println("Mouse position: (" + roundedX + ", " + roundedY + ")");
-                        double[] tmp = currentImage.get(j, i).clone();
-                        tmp[0] = b*opa + (1-opa)*255;
-                        tmp[1] = g*opa + (1-opa)*255;
-                        tmp[2] = r*opa + (1-opa)*255;
-                        currentImage.put(j, i, tmp);
-                        //System.out.println("run");
-                        pixelWriter.setColor(i, j, javafx.scene.paint.Color.rgb(r, g, b,opa));
-                        mainImageView.setImage(image);
-                    }
-                    else if(i<matWidth&&j<matHeight&&i>=0&&j>=0&&iserase==1) {
-                        if(first_catch.cols()!=currentImage.cols()&&first_catch.rows()!=currentImage.rows()) {
-                            double[] tmp = currentImage.get(j, i).clone();
-                            tmp[0] = 255;
-                            tmp[1] = 255;
-                            tmp[2] = 255;
-                            currentImage.put(j, i, tmp);
-                            //System.out.println("run");
-                            pixelWriter.setColor(i, j, javafx.scene.paint.Color.rgb(255, 255, 255));
-                            mainImageView.setImage(image);
-                        }
-                        else {
-                            double[] tmp = currentImage.get(j, i).clone();
-                            double[] fcarr= first_catch.get(j,i).clone();
-                            tmp[0] = fcarr[0];
-                            tmp[1] = fcarr[1];
-                            tmp[2] = fcarr[2];
-                            currentImage.put(j, i, tmp);
-                            //System.out.println("run");
-                            pixelWriter.setColor(i, j, javafx.scene.paint.Color.rgb((int)fcarr[2],(int)fcarr[1],(int)fcarr[0]));
-                            mainImageView.setImage(image);
+                    if (!eraserActive) {
+                        // Draw with current colour + opacity
+                        double[] pixel = currentImage.get(py, px).clone();
+                        pixel[0] = penBlue  * penOpacity + (1 - penOpacity) * 255;
+                        pixel[1] = penGreen * penOpacity + (1 - penOpacity) * 255;
+                        pixel[2] = penRed   * penOpacity + (1 - penOpacity) * 255;
+                        currentImage.put(py, px, pixel);
+                        pixelWriter.setColor(px, py, Color.rgb(penRed, penGreen, penBlue, penOpacity));
+                    } else {
+                        // Erase: restore from originalSnapshot if dimensions match, else white
+                        double[] pixel = currentImage.get(py, px).clone();
+                        if (originalSnapshot.cols() == currentImage.cols()
+                                && originalSnapshot.rows() == currentImage.rows()) {
+                            double[] orig = originalSnapshot.get(py, px);
+                            pixel[0] = orig[0];
+                            pixel[1] = orig[1];
+                            pixel[2] = orig[2];
+                            currentImage.put(py, px, pixel);
+                            pixelWriter.setColor(px, py,
+                                    Color.rgb((int) orig[2], (int) orig[1], (int) orig[0]));
+                        } else {
+                            pixel[0] = pixel[1] = pixel[2] = 255;
+                            currentImage.put(py, px, pixel);
+                            pixelWriter.setColor(px, py, Color.WHITE);
                         }
                     }
+                    mainImageView.setImage(writableImage);
                 }
             }
         });
-        mainImageView.setOnMouseReleased(event -> {
-            add_action();
-        });
-        //show_the_images();
-    }
-    @FXML
-    Slider briness = new Slider();
-    int dosang=0;
-    @FXML
-    public void save_image() {
-        for (int i = 0; i < currentImage.rows(); i++) {
-            for (int j = 0; j < currentImage.cols(); j++) {
-                double[] data = currentImage.get(i, j);
-                double[] data2 = currentImage.get(i, j);
-                data2[0] +=dosang;
-                data2[1] +=dosang;
-                data2[2] +=dosang;
-                if(data2[0]<0) {
-                    data2[0]=0;
-                }
-                if(data2[1]<0) {
-                    data2[1]=0;
-                }
-                if(data2[2]<0) {
-                    data2[1]=0;
-                }
-                if(data2[0]>255) {
-                    data2[0]=255;
-                }
-                if(data2[1]>255) {
-                    data2[1]=255;
-                }
-                if(data2[2]>255) {
-                    data2[1]=255;
-                }
-                //System.out.println(data[0]+" "+data2[0]);
-                currentImage.put(i, j, data2);
-            }
-        }
-        add_action();
-        show_the_images();
-    }
-    void tempshow() {
-        Mat tempimg= currentImage.clone();
-        for (int i = 0; i < tempimg.rows(); i++) {
-            for (int j = 0; j < tempimg.cols(); j++) {
-                double[] data = tempimg.get(i, j);
-                double[] data2 = tempimg.get(i, j);
-                data2[0] +=dosang;
-                data2[1] +=dosang;
-                data2[2] +=dosang;
-                if(data2[0]<0) {
-                    data2[0]=0;
-                }
-                if(data2[1]<0) {
-                    data2[1]=0;
-                }
-                if(data2[2]<0) {
-                    data2[1]=0;
-                }
-                if(data2[0]>255) {
-                    data2[0]=255;
-                }
-                if(data2[1]>255) {
-                    data2[1]=255;
-                }
-                if(data2[2]>255) {
-                    data2[1]=255;
-                }
-                //System.out.println(data[0]+" "+data2[0]);
-                tempimg.put(i, j, data2);
-            }
-        }
-        WritableImage temppo = matToImage(tempimg);
-        mainImageView.setImage(temppo);
-    }
-    @FXML
-    protected void handleAdjust() {
-        hideAllMenus();
-        brightness1.setVisible(true);
-        briness.setMin(-50); // Giá trị tối thiểu
-        briness.setMax(50); // Giá trị tối đa
-        briness.setValue(0); // Giá trị khởi tạo (bạn có thể điều chỉnh)
-        // Thiết lập bước nhảy (tick unit) giữa các giá trị trên Slider
-        briness.setBlockIncrement(2); // Mỗi lần thay đổi 1 đơn vị
-        briness.setMajorTickUnit(2); // Bước nhảy chính 1 đơn vị
-        briness.valueProperty().addListener((observable, oldValue, newValue) -> {
-            dosang = (int)newValue.doubleValue();
-            System.out.println(dosang);
-            tempshow();
-        });
-    }
-    int crx=-1,cry=-1,crz=-1,crt=-1;
-    public void showcrop() {
-        Mat tempimg= currentImage.clone();
-        for (int i = 0; i < tempimg.rows(); i++) {
-            for (int j = 0; j < tempimg.cols(); j++) {
-                if(i>=crx&&i<=crz&&j>=cry&&j<=crt) {
 
-                }
-                else {
-                    double[] data = tempimg.get(i, j);
-                    double[] data2 = tempimg.get(i, j);
-                    data2[0] -= 50;
-                    data2[1] -= 50;
-                    data2[2] -= 50;
-                    if (data2[0] < 0) {
-                        data2[0] = 0;
-                    }
-                    if (data2[1] < 0) {
-                        data2[1] = 0;
-                    }
-                    if (data2[2] < 0) {
-                        data2[1] = 0;
-                    }
-                    if (data2[0] > 255) {
-                        data2[0] = 255;
-                    }
-                    if (data2[1] > 255) {
-                        data2[1] = 255;
-                    }
-                    if (data2[2] > 255) {
-                        data2[1] = 255;
-                    }
-                    //System.out.println(data[0]+" "+data2[0]);
-                    tempimg.put(i, j, data2);
-                }
-            }
-        }
-        WritableImage temppo = matToImage(tempimg);
-        mainImageView.setImage(temppo);
+        mainImageView.setOnMouseReleased(event -> saveToHistory());
     }
-    Mat tempcut = currentImage.clone();
-    @FXML
-    public void save_crop () {
-        currentImage=tempcut.clone();
-        add_action();
-        show_the_images();
-    }
+
+    // =========================================================================
+    // Crop
+    // =========================================================================
+
     @FXML
     protected void handleCrop() {
-        hideAllMenus();
+        resetToolbars();
         cropOptionsMenu.setVisible(true);
 
         mainImageView.setOnMousePressed(event -> {
-            // Lấy kích thước của ảnh trong ImageView
-            double imageViewWidth = mainImageView.getFitWidth();
-            double imageViewHeight = mainImageView.getFitHeight();
-
-            // Kích thước gốc của ảnh (Mat)
-            double matWidth = currentImage.cols();
-            double matHeight = currentImage.rows();
-
-            // Tính tỷ lệ co (scale)
-            double scaleX = imageViewWidth / matWidth;
-            double scaleY = imageViewHeight / matHeight;
-            double scale = Math.min(scaleX, scaleY); // Giữ nguyên tỷ lệ ảnh
-
-            // Lấy tọa độ chuột khi bắt đầu kéo
-            crx = (int) (event.getY() / scale);
-            cry = (int) (event.getX() / scale);
+            double scale = computeScale();
+            double[] offset = computeImageOffset();
+            initialCropRow = (int) ((event.getY() - offset[1]) / scale);
+            initialCropCol = (int) ((event.getX() - offset[0]) / scale);
+            // Clamp to image bounds
+            initialCropRow = Math.max(0, Math.min(initialCropRow, currentImage.rows() - 1));
+            initialCropCol = Math.max(0, Math.min(initialCropCol, currentImage.cols() - 1));
+            cropStartRow = initialCropRow;
+            cropStartCol = initialCropCol;
+            cropEndRow   = initialCropRow;
+            cropEndCol   = initialCropCol;
         });
 
         mainImageView.setOnMouseDragged(event -> {
-            double imageViewWidth = mainImageView.getFitWidth();
-            double imageViewHeight = mainImageView.getFitHeight();
+            double scale = computeScale();
+            double[] offset = computeImageOffset();
+            int curRow = (int) ((event.getY() - offset[1]) / scale);
+            int curCol = (int) ((event.getX() - offset[0]) / scale);
+            // Clamp to image bounds
+            curRow = Math.max(0, Math.min(curRow, currentImage.rows() - 1));
+            curCol = Math.max(0, Math.min(curCol, currentImage.cols() - 1));
 
-            // Kích thước gốc của ảnh (Mat)
-            double matWidth = currentImage.cols();
-            double matHeight = currentImage.rows();
+            // Re-compute start/end from the fixed anchor + current position
+            cropStartRow = Math.min(initialCropRow, curRow);
+            cropStartCol = Math.min(initialCropCol, curCol);
+            cropEndRow   = Math.max(initialCropRow, curRow);
+            cropEndCol   = Math.max(initialCropCol, curCol);
 
-            // Tính tỷ lệ co (scale)
-            double scaleX = imageViewWidth / matWidth;
-            double scaleY = imageViewHeight / matHeight;
-            double scale = Math.min(scaleX, scaleY); // Giữ nguyên tỷ lệ ảnh
-
-            // Lấy tọa độ chuột khi kéo
-            int currentX = (int) (event.getX() / scale);
-            int currentY = (int) (event.getY() / scale);
-            int tempo = currentX;
-            currentX=currentY;
-            currentY=tempo;
-            // Cập nhật tọa độ vùng cắt
-            crz = Math.max(crz, currentX);
-            crt = Math.max(crt, currentY);
-            crx = Math.min(crx, currentX);
-            cry = Math.min(cry, currentY);
-            crz=Math.min(crz,(int)matHeight);
-            crt=Math.min(crt,(int)matWidth);
-            // Hiển thị khung vùng crop
-            showcrop();
+            Mat preview = ImageProcessor.buildCropPreview(
+                    currentImage, cropStartRow, cropStartCol, cropEndRow, cropEndCol);
+            mainImageView.setImage(ImageProcessor.matToWritableImage(preview));
         });
 
         mainImageView.setOnMouseReleased(event -> {
-            // Kiểm tra tính hợp lệ của vùng crop
-            if (crx >= 0 && cry >= 0 && crz > crx && crt > cry && crt-cry <= currentImage.cols() && crz-crx <= currentImage.rows()) {
-                Rect regionOfInterest = new Rect(cry, crx, crt - cry, crz - crx);
-                tempcut = new Mat(currentImage, regionOfInterest);
-            } else {
-                showAlert("Invalid crop region!");
-            }
+            boolean valid = cropStartRow >= 0 && cropStartCol >= 0
+                    && cropEndRow > cropStartRow && cropEndCol > cropStartCol
+                    && (cropEndCol - cropStartCol) <= currentImage.cols()
+                    && (cropEndRow - cropStartRow) <= currentImage.rows();
 
-            // Đặt lại giá trị vùng crop
-            crx = cry = crz = crt = -1;
+            if (valid) {
+                Rect roi = new Rect(cropStartCol, cropStartRow,
+                                    cropEndCol - cropStartCol,
+                                    cropEndRow  - cropStartRow);
+                pendingCrop = new Mat(currentImage, roi);
+            } else {
+                showAlert("Vùng cắt không hợp lệ!");
+            }
+            cropStartRow = cropStartCol = cropEndRow = cropEndCol = -1;
+            initialCropRow = initialCropCol = -1;
         });
     }
-    String add_string = "G";
-    double text_size = 10;
-    String text_font = "Arial";
 
     @FXML
-    protected void input_string () {
-        Label guide1 = new Label("nhập text vào ô dưới ");
-        Label guide2 =  new Label("nhập cỡ chữ");
-        TextField input_text_here = new TextField();
-        TextField sizez = new TextField();
-        input_text_here.setPromptText("Nhập chuỗi cần chèn :");
-        Label guide3 = new Label("chọn phông chữ");
-        ComboBox<String> comboBox = new ComboBox<>();
-        comboBox.getItems().addAll("Arial", "Times New Roman", "Roboto","Comic Sans MS");
-        comboBox.setValue("Arial"); // Giá trị mặc định
-        input_text_here.setText(add_string);
-        sizez.setText(Double.toString(text_size));
-        //Control: button
-        Button add = new Button("Đổi chuỗi");
+    public void save_crop() {
+        currentImage = pendingCrop.clone();
+        saveToHistory();
+        refreshImageView();
+    }
+
+    // =========================================================================
+    // Insert text
+    // =========================================================================
+
+    @FXML
+    protected void input_string() {
+        Label guide1 = new Label("Nhập text:");
+        Label guide2 = new Label("Cỡ chữ:");
+        Label guide3 = new Label("Phông chữ:");
+
+        TextField textField = new TextField(insertText);
+        TextField sizeField = new TextField(Double.toString(insertTextSize));
+
+        ComboBox<String> fontBox = new ComboBox<>();
+        fontBox.getItems().addAll("Arial", "Times New Roman", "Roboto", "Comic Sans MS");
+        fontBox.setValue(insertTextFont);
+
+        Button confirmBtn = new Button("Xác nhận");
         Stage stage = new Stage();
-        VBox layout = new VBox(10);
-        layout.setPadding(new Insets(30));
-        layout.getChildren().addAll(guide1,input_text_here,guide2,sizez,guide3,comboBox,add);
-        //Scene
-        Scene scene = new Scene(layout, 500,500);
-        stage.setTitle("đổi chữ");
-        stage.setScene(scene);
-        stage.show();
-        //Action
-        add.setOnAction(event -> {
+        confirmBtn.setOnAction(e -> {
             try {
-                text_font = comboBox.getValue();
-                add_string = input_text_here.getText();
-                text_size = Double.parseDouble(sizez.getText());
+                insertTextFont = fontBox.getValue();
+                insertText     = textField.getText();
+                insertTextSize = Double.parseDouble(sizeField.getText());
                 stage.close();
             } catch (NumberFormatException ex) {
-                System.err.println("Error");
+                showAlert("Cỡ chữ không hợp lệ!");
             }
         });
-        // Layout
 
+        VBox layout = new VBox(10, guide1, textField, guide2, sizeField, guide3, fontBox, confirmBtn);
+        layout.setPadding(new Insets(20));
+        stage.setTitle("Cài đặt văn bản");
+        stage.setScene(new Scene(layout, 400, 320));
+        stage.show();
     }
-    @FXML
-    public void save_insert_image() {
-        currentImage=reclone.clone();
-        add_action();
-        show_the_images();
-    }
-     // Kênh alpha
-     protected Mat createtemp(int x, int y) {
-         Mat a = clonea.clone();
-         Mat b = reclone.clone();
-         int n = a.rows();
-         int m = a.cols();
-         int p1 = b.rows();
-         int p2 = b.cols();
-         Mat out = b.clone();
 
-         // Kiểm tra số kênh của ảnh
-         int channels = a.channels();  // Số kênh của ảnh (RGB = 3, RGBA = 4)
-        /*
-         for (int i = 0; i < n && i + x < p1; i++) {
-             for (int j = 0; j < m && j + y < p2; j++) {
-                 double[] pixel = a.get(i, j);
-
-                 // Nếu ảnh có 4 kênh (RGBA), kiểm tra kênh alpha
-                 if (channels == 4) {
-                     double alpha = pixel[3];  // Kênh alpha
-                     // Kiểm tra xem phần nền có trong suốt không (alpha = 0)
-                     if (alpha != 0) {
-                         double[] arr = new double[3];
-                         arr[0]=pixel[0];
-                         arr[1]=pixel[1];
-                         arr[2]=pixel[2];
-                         if(i+x>=0&&j+y>=0) {
-                             out.put(i + x, j + y, arr);
-                         }// Di chuyển pixel vào vị trí thích hợp
-                     }
-                 } else if (channels == 3) {
-                     // Nếu ảnh chỉ có 3 kênh (RGB), xử lý bình thường
-                     if(i+x>=0&&j+y>=0) {
-                         out.put(i + x, j + y, pixel);
-                     }
-                 }
-             }
-         }*/
-         int addi=0;
-         int addj=0;
-         for (int i=x-(n/2);i<=x+(n/2);i++) {
-             for (int j=y-(m/2);j<=y+(m/2);j++) {
-                 if(i>=0&&j>=0&&i<p1&&j<p2&&addi<n&&addj<m) {
-                     double[] pixel = a.get(addi, addj);
-                     if (channels == 4) {
-                         if (pixel[3] != 0) {
-                             double[] pixelt = out.get(i, j).clone();
-                             pixelt[0]=pixel[0];
-                             pixelt[1]=pixel[1];
-                             pixelt[2]=pixel[2];
-                             out.put(i,j,pixelt);
-                         }
-                     } else {
-                         double[] pixelt = out.get(i, j).clone();
-                         pixelt[0]=pixel[0];
-                         pixelt[1]=pixel[1];
-                         pixelt[2]=pixel[2];
-                         out.put(i,j,pixelt);
-                     }
-                 }
-                 addj++;
-             }
-             addi++;
-             addj=0;
-         }
-         return out;
-     }
-
-
-    Mat clonea = currentImage.clone();
-    Mat reclone = currentImage.clone();
-    @FXML
-    protected void handleInsertimage() {
-        hideAllMenus();
-        //mainImageView.setCursor(Cursor.CROSSHAIR);
-        brightness2.setVisible(true);
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
-        File file = fileChooser.showOpenDialog(mainImageView.getScene().getWindow());
-        try {
-            if (file != null) {
-                clonea = Imgcodecs.imread(file.getAbsolutePath(),Imgcodecs.IMREAD_UNCHANGED);
-            }
-        }
-        catch (Exception e) {
-            System.out.println("Never - Give - Up");
-        }
-        mainImageView.setOnMousePressed(event -> {
-            reclone=currentImage.clone();
-            double imageViewWidth = mainImageView.getFitWidth();
-            double imageViewHeight = mainImageView.getFitHeight();
-
-            // Kích thước gốc của ảnh (Mat)
-            double matWidth = currentImage.cols();
-            double matHeight = currentImage.rows();
-
-            // Tính tỷ lệ co (scale)
-            double scaleX = imageViewWidth / matWidth;
-            double scaleY = imageViewHeight / matHeight;
-            double scale = Math.min(scaleX, scaleY); // Sử dụng tỷ lệ nhỏ nhất để giữ nguyên tỷ lệ ảnh
-
-
-            // Tọa độ chuột trên ImageView
-            double mouseX = event.getX();
-            double mouseY = event.getY();
-
-            // Chuyển đổi về tọa độ gốc của ảnh
-            int roundedX = (int) ((mouseX) / scale);
-            int roundedY = (int) ((mouseY) / scale);
-
-            reclone= createtemp(roundedY,roundedX).clone();
-            WritableImage temppo = matToImage(reclone);
-            mainImageView.setImage(temppo);
-        });
-    }
     @FXML
     protected void handleInsert() {
-        hideAllMenus();
-        //mainImageView.setCursor(Cursor.CROSSHAIR);
+        resetToolbars();
         new_text.setVisible(true);
         draw4.setVisible(true);
+
         mainImageView.setOnMousePressed(event -> {
-            double imageViewWidth = mainImageView.getFitWidth();
-            double imageViewHeight = mainImageView.getFitHeight();
+            double scale  = computeScale();
+            double[] offset = computeImageOffset();
+            int clickCol  = (int) ((event.getX() - offset[0]) / scale);
+            int clickRow  = (int) ((event.getY() - offset[1]) / scale);
+            // Clamp to image bounds
+            clickCol = Math.max(0, Math.min(clickCol, currentImage.cols() - 1));
+            clickRow = Math.max(0, Math.min(clickRow, currentImage.rows() - 1));
 
-            // Kích thước gốc của ảnh (Mat)
-            double matWidth = currentImage.cols();
-            double matHeight = currentImage.rows();
-
-            // Tính tỷ lệ co (scale)
-            double scaleX = imageViewWidth / matWidth;
-            double scaleY = imageViewHeight / matHeight;
-            double scale = Math.min(scaleX, scaleY); // Sử dụng tỷ lệ nhỏ nhất để giữ nguyên tỷ lệ ảnh
-
-
-            // Tọa độ chuột trên ImageView
-            double mouseX = event.getX();
-            double mouseY = event.getY();
-
-            // Chuyển đổi về tọa độ gốc của ảnh
-            int roundedX = (int) ((mouseX) / scale);
-            int roundedY = (int) ((mouseY) / scale);
-            /*Imgproc.putText(
-                    currentImage,                      // Ảnh gốc
-                    add_string,                    // Văn bản để chèn
-                    new Point(roundedX, roundedY),        // Vị trí (tọa độ gốc của ảnh)
-                    Imgproc.FONT_HERSHEY_SIMPLEX,     // Font chữ
-                    text_size,                              // Kích thước font
-                    new Scalar(r, g, b),            // Màu chữ (BGR)
-                    2                                 // Độ dày ch
-            );*/
-            BufferedImage buffimage = matToBufferedImage(currentImage);
-            Graphics2D g2d = buffimage.createGraphics();
-
-            // Sử dụng font có thể hỗ trợ tiếng Việt
-            Font font = new Font(text_font, Font.PLAIN, (int)text_size);  // Bạn có thể thay đổi font để phù hợp với tiếng Việt
+            BufferedImage buffImage = ImageProcessor.matToBufferedImage(currentImage);
+            Graphics2D g2d = buffImage.createGraphics();
+            Font font = new Font(insertTextFont, Font.PLAIN, (int) insertTextSize);
             g2d.setFont(font);
-            java.awt.Color textColor = new java.awt.Color(r, g, b);
-            g2d.setColor(textColor);  // Màu chữ
-            g2d.drawString(add_string, roundedX, roundedY);
-            currentImage = bufferedImageToMat(buffimage).clone();
-            add_action();
-            show_the_images();
+            g2d.setColor(new java.awt.Color(penRed, penGreen, penBlue));
+            g2d.drawString(insertText, clickCol, clickRow);
+            g2d.dispose();
+
+            currentImage = ImageProcessor.bufferedImageToMat(buffImage, currentImage).clone();
+            saveToHistory();
+            refreshImageView();
         });
     }
-    private BufferedImage matToBufferedImage(Mat mat) {
-        int width = mat.width();
-        int height = mat.height();
-        int channels = mat.channels();
 
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR);
-        mat.get(0, 0, ((java.awt.image.DataBufferByte) image.getRaster().getDataBuffer()).getData());
-        return image;
-    }
-    private Mat bufferedImageToMat(BufferedImage bufferedImage) {
-        // Lấy thông số về kích thước ảnh
-        int width = bufferedImage.getWidth();
-        int height = bufferedImage.getHeight();
-        Mat mat = currentImage.clone();
+    // =========================================================================
+    // Insert overlay image
+    // =========================================================================
 
-        // Lấy dữ liệu pixel từ BufferedImage
-        for (int i=0;i<width;i++) {
-            for (int j=0;j<height;j++) {
-                int rgb = bufferedImage.getRGB(i,j);
-                int red = (rgb >> 16) & 0xFF;   // Lấy kênh Red
-                int green = (rgb >> 8) & 0xFF;  // Lấy kênh Green
-                int blue = rgb & 0xFF;
-                double[] tmp = currentImage.get(j, i);
-                tmp[0] = blue;
-                tmp[1] = green;
-                tmp[2] = red;
-                mat.put(j, i, tmp);
-            }
-        }
-        return mat;
-    }
-
-
-    /*@FXML
-    protected void handleExit() {
-        showAlert("Thoát ứng dụng...");
-        System.exit(0);
-    }*/
     @FXML
-    protected void handleExit() {
-        try {
-            // Tải lại giao diện Projects từ file FXML
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/duanapp/main/projects.fxml"));
-            Scene newScene = new Scene(loader.load());
+    protected void handleInsertimage() {
+        resetToolbars();
+        brightness2.setVisible(true);
 
-            // Lấy stage hiện tại
-            Stage currentStage = (Stage) mainImageView.getScene().getWindow();
-
-            // Tạo hiệu ứng Fade Out cho Scene hiện tại
-            FadeTransition fadeOut = new FadeTransition(Duration.seconds(0.5), currentStage.getScene().getRoot());
-            fadeOut.setFromValue(1.0); // Độ mờ ban đầu
-            fadeOut.setToValue(0.0);   // Độ mờ cuối cùng
-            fadeOut.setOnFinished(event -> {
-                // Chuyển sang Scene mới
-                currentStage.setScene(newScene);
-
-                // Tạo hiệu ứng Fade In cho Scene mới
-                FadeTransition fadeIn = new FadeTransition(Duration.seconds(0.5), newScene.getRoot());
-                fadeIn.setFromValue(0.0); // Độ mờ ban đầu
-                fadeIn.setToValue(1.0);   // Độ mờ cuối cùng
-                fadeIn.play();
-            });
-            fadeOut.play(); // Bắt đầu hiệu ứng Fade Out
-        } catch (IOException e) {
-            e.printStackTrace();
-            showAlert("Lỗi khi chuyển về giao diện Projects!");
+        FileChooser chooser = new FileChooser();
+        chooser.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
+        File file = chooser.showOpenDialog(mainImageView.getScene().getWindow());
+        if (file != null) {
+            insertOverlay = Imgcodecs.imread(file.getAbsolutePath(), Imgcodecs.IMREAD_UNCHANGED);
         }
+
+        mainImageView.setOnMousePressed(event -> {
+            insertedPreview = currentImage.clone();
+            double scale = computeScale();
+            double[] offset = computeImageOffset();
+            int clickCol = (int) ((event.getX() - offset[0]) / scale);
+            int clickRow = (int) ((event.getY() - offset[1]) / scale);
+            // Clamp to image bounds
+            clickCol = Math.max(0, Math.min(clickCol, currentImage.cols() - 1));
+            clickRow = Math.max(0, Math.min(clickRow, currentImage.rows() - 1));
+
+            insertedPreview = blendOverlay(insertedPreview, insertOverlay, clickRow, clickCol);
+            mainImageView.setImage(ImageProcessor.matToWritableImage(insertedPreview));
+        });
     }
 
     @FXML
-    protected void AI () {
-        hideAllMenus();
-        try {
-            // API URL và API Key
-            String url = "https://api.remove.bg/v1.0/removebg";
-            String apiKey = "381DzVgo7ZQcnznKioPr1uzr";
+    public void save_insert_image() {
+        currentImage = insertedPreview.clone();
+        saveToHistory();
+        refreshImageView();
+    }
 
-            // Tạo client HTTP
-            CloseableHttpClient client = HttpClients.createDefault();
+    /**
+     * Blends {@code overlay} onto {@code base} centred at ({@code centreRow}, {@code centreCol}).
+     * Respects the alpha channel of the overlay when present.
+     */
+    private Mat blendOverlay(Mat base, Mat overlay, int centreRow, int centreCol) {
+        Mat result   = base.clone();
+        int overlayRows = overlay.rows();
+        int overlayCols = overlay.cols();
+        int channels    = overlay.channels();
 
-            // Tạo yêu cầu POST
-            HttpPost postRequest = new HttpPost(url);
-            postRequest.addHeader("X-Api-Key", apiKey);
-            //file open
-            FileChooser fileChooser = new FileChooser();
-            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
-            File file = fileChooser.showOpenDialog(mainImageView.getScene().getWindow());
+        int startRow = centreRow - overlayRows / 2;
+        int startCol = centreCol - overlayCols / 2;
 
-            // Tạo multipart entity và thêm ảnh
-            MultipartEntityBuilder builder = MultipartEntityBuilder.create();
-            builder.addBinaryBody("image_file", new File(file.getAbsolutePath()));
-            builder.addTextBody("size", "auto");
-            HttpEntity multipartEntity = builder.build();
+        for (int oi = 0; oi < overlayRows; oi++) {
+            for (int oj = 0; oj < overlayCols; oj++) {
+                int bi = startRow + oi;
+                int bj = startCol + oj;
+                if (bi < 0 || bj < 0 || bi >= base.rows() || bj >= base.cols()) continue;
 
-            postRequest.setEntity(multipartEntity);
+                double[] overlayPixel = overlay.get(oi, oj);
+                if (channels == 4 && overlayPixel[3] == 0) continue; // transparent
 
-            // Gửi yêu cầu và nhận phản hồi
-            HttpResponse response = client.execute(postRequest);
-            HttpEntity entity = response.getEntity();
-
-            // Đọc kết quả từ response và lưu vào file
-            InputStream inputStream = entity.getContent();
-            FileOutputStream outputStream = new FileOutputStream(new File("unscreen.png"));
-
-            int byteRead;
-            while ((byteRead = inputStream.read()) != -1) {
-                outputStream.write(byteRead);
+                double[] basePixel = result.get(bi, bj).clone();
+                basePixel[0] = overlayPixel[0];
+                basePixel[1] = overlayPixel[1];
+                basePixel[2] = overlayPixel[2];
+                result.put(bi, bj, basePixel);
             }
+        }
+        return result;
+    }
 
-            // Đóng streams
-            inputStream.close();
-            outputStream.close();
+    // =========================================================================
+    // AI background removal (remove.bg)
+    // =========================================================================
 
-            // Xử lý nếu cần (in ra mã trạng thái)
-            System.out.println("Response Code: " + response.getStatusLine().getStatusCode());
+    @FXML
+    protected void AI() {
+        resetToolbars();
 
-            client.close();
+        if (REMOVE_BG_API_KEY.isEmpty()) {
+            showAlert("API key chưa được cấu hình. Vui lòng điền vào file .env.");
+            return;
+        }
+        if (currentImage == null || currentImage.empty()) {
+            showAlert("Không có ảnh để xử lý!");
+            return;
+        }
 
-            // Chuyển file PNG thành Mat và hiển thị trên JavaFX
-            currentImage = Imgcodecs.imread("unscreen.png",Imgcodecs.IMREAD_UNCHANGED);
-            add_action();
-            show_the_images();
+        try {
+            // Export currentImage to a temporary file so we can POST it
+            Path tempInput = Files.createTempFile("removebg_in_", ".png");
+            Imgcodecs.imwrite(tempInput.toString(), currentImage);
+
+            try (CloseableHttpClient client = HttpClients.createDefault()) {
+                HttpPost post = new HttpPost(REMOVE_BG_API_URL);
+                post.addHeader("X-Api-Key", REMOVE_BG_API_KEY);
+
+                MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+                builder.addBinaryBody("image_file", tempInput.toFile());
+                builder.addTextBody("size", "auto");
+                post.setEntity(builder.build());
+
+                HttpResponse response = client.execute(post);
+                HttpEntity entity = response.getEntity();
+
+                int statusCode = response.getStatusLine().getStatusCode();
+                System.out.println("remove.bg status: " + statusCode);
+
+                Path outputPath = WORK_DIR.resolve("unscreen.png");
+                try (InputStream in = entity.getContent();
+                     FileOutputStream out = new FileOutputStream(outputPath.toFile())) {
+                    in.transferTo(out);
+                }
+
+                if (statusCode == 200) {
+                    currentImage = Imgcodecs.imread(outputPath.toString(), Imgcodecs.IMREAD_UNCHANGED);
+                    saveToHistory();
+                    refreshImageView();
+                } else {
+                    showAlert("remove.bg trả về lỗi (HTTP " + statusCode + "). Kiểm tra API key và hạn mức.");
+                }
+            } finally {
+                Files.deleteIfExists(tempInput);
+            }
         } catch (Exception e) {
             e.printStackTrace();
+            showAlert("Lỗi khi gọi API remove.bg: " + e.getMessage());
         }
     }
+
+    // =========================================================================
+    // Navigation — back to project view
+    // =========================================================================
+
+    @FXML
+    protected void handleExit() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/duanapp/main/projects.fxml"));
+            Scene newScene = new Scene(loader.load());
+            Stage stage    = (Stage) mainImageView.getScene().getWindow();
+
+            FadeTransition fadeOut = new FadeTransition(Duration.seconds(0.5), stage.getScene().getRoot());
+            fadeOut.setFromValue(1.0);
+            fadeOut.setToValue(0.0);
+            fadeOut.setOnFinished(e -> {
+                stage.setScene(newScene);
+                FadeTransition fadeIn = new FadeTransition(Duration.seconds(0.5), newScene.getRoot());
+                fadeIn.setFromValue(0.0);
+                fadeIn.setToValue(1.0);
+                fadeIn.play();
+            });
+            fadeOut.play();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlert("Lỗi khi chuyển về màn hình dự án!");
+        }
+    }
+
+    // =========================================================================
+    // Private utilities
+    // =========================================================================
+
+    /**
+     * Computes the display scale factor (image-pixels per view-pixel) for the
+     * current ImageView size and image dimensions.
+     */
+    private double computeScale() {
+        double scaleX = mainImageView.getFitWidth()  / currentImage.cols();
+        double scaleY = mainImageView.getFitHeight() / currentImage.rows();
+        return Math.min(scaleX, scaleY);
+    }
+
+    /**
+     * Computes the top-left offset (in view pixels) of the actual image content
+     * inside the ImageView when {@code preserveRatio} is true.
+     *
+     * <p>JavaFX centres the image within the bounding box, creating blank margins
+     * that shift the image away from (0,0) of the ImageView. Without subtracting
+     * these offsets, mouse-event coordinates are wrong.
+     *
+     * @return double[]{offsetX, offsetY}
+     */
+    private double[] computeImageOffset() {
+        double scale  = computeScale();
+        double imageDisplayWidth  = currentImage.cols() * scale;
+        double imageDisplayHeight = currentImage.rows() * scale;
+        double offsetX = (mainImageView.getFitWidth()  - imageDisplayWidth)  / 2.0;
+        double offsetY = (mainImageView.getFitHeight() - imageDisplayHeight) / 2.0;
+        // Offsets are never negative (image never exceeds the fitWidth/fitHeight)
+        return new double[]{ Math.max(0, offsetX), Math.max(0, offsetY) };
+    }
+
     private void showAlert(String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Action Triggered");
+        alert.setTitle("Thông báo");
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+
+    /**
+     * Reads a single key from the {@code .env} file located in the working
+     * directory.  Returns an empty string if the file or key is not found.
+     *
+     * <p>Safe to call from a {@code static{}} initialiser because it resolves
+     * the path via {@code System.getProperty("user.dir")} at call-time rather
+     * than relying on a class-level constant.
+     *
+     * @param key the key to look up (e.g. {@code "REMOVE_BG_API_KEY"})
+     * @return the trimmed value, or {@code ""} if absent
+     */
+    static String loadEnv(String key) {
+        Path envFile = Paths.get(System.getProperty("user.dir"), ".env");
+        if (!Files.exists(envFile)) return "";
+        try {
+            String prefix = key + "=";
+            for (String line : Files.readAllLines(envFile)) {
+                String trimmed = line.trim();
+                if (trimmed.startsWith("#") || trimmed.isEmpty()) continue;
+                if (trimmed.startsWith(prefix)) {
+                    return trimmed.substring(prefix.length()).trim();
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("[MainController] Không đọc được .env: " + e.getMessage());
+        }
+        return "";
     }
 }

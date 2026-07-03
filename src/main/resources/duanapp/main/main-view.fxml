@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ColorPicker?>
 <?import javafx.scene.control.Label?>
@@ -11,296 +10,205 @@
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
-
-<?import javafx.scene.control.Menu?>
-<BorderPane prefHeight="700.0" prefWidth="1000.0" stylesheets="@style.css" xmlns="http://javafx.com/javafx/17.0.6" xmlns:fx="http://javafx.com/fxml/1" fx:controller="duanapp.main.MainController">
-
+<BorderPane prefHeight="750.0" prefWidth="1200.0" stylesheets="@style.css"
+            xmlns="http://javafx.com/javafx/17.0.6"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="duanapp.main.MainController">
     <top>
         <VBox>
-            <HBox alignment="CENTER" prefHeight="100.0" prefWidth="942.0" spacing="15" styleClass="toolbar">
-                <Button onAction="#handleOpenImage" styleClass="icon-button">
-                    <graphic>
-                        <ImageView fitHeight="30" fitWidth="30">
-                            <Image url="@icon/add.png" />
-                        </ImageView>
-                    </graphic>
-                    <tooltip>
-                        <Tooltip text="mở ảnh mới" />
-                    </tooltip>
-                </Button>
-                <Button onAction="#handleRedo" styleClass="icon-button">
-                    <graphic>
-                        <ImageView fitHeight="30" fitWidth="30">
-                            <Image url="@icon/redo.png" />
-                        </ImageView>
-                    </graphic>
-                    <tooltip>
-                        <Tooltip text="quay lại 1 bước" />
-                    </tooltip>
-                </Button>
-                <Button onAction="#handleNext" styleClass="icon-button">
-                    <graphic>
-                        <ImageView fitHeight="30" fitWidth="30">
-                            <Image url="@icon/next.png" />
-                        </ImageView>
-                    </graphic>
-                    <tooltip>
-                        <Tooltip text="tiến lên 1 bước" />
-                    </tooltip>
-                </Button>
-                <Button onAction="#handleDraw" styleClass="icon-button">
-                    <graphic>
-                        <ImageView fitHeight="30" fitWidth="30">
-                            <Image url="@icon/pencil.png" />
-                        </ImageView>
-                    </graphic>
-                    <tooltip>
-                        <Tooltip text="Vẽ" />
-                    </tooltip>
-                </Button>
-                <Button onAction="#handleCrop" styleClass="icon-button">
-                    <graphic>
-                        <ImageView fitHeight="30" fitWidth="30">
-                            <Image url="@icon/crop.png" />
-                        </ImageView>
-                    </graphic>
-                    <tooltip>
-                        <Tooltip text="Cắt ảnh" />
-                    </tooltip>
-                </Button>
-                <Button onAction="#handleResize" styleClass="icon-button">
-                    <graphic>
-                        <ImageView fitHeight="30" fitWidth="30">
-                            <Image url="@icon/resize.png" />
-                        </ImageView>
-                    </graphic>
-                    <tooltip>
-                        <Tooltip text="Thay đổi kích cỡ" />
-                    </tooltip>
-                </Button>
-                <Button onAction="#handleAdjust" styleClass="icon-button">
-                    <graphic>
-                        <ImageView fitHeight="30" fitWidth="30">
-                            <Image url="@icon/brightness.png" />
-                        </ImageView>
-                    </graphic>
-                    <tooltip>
-                        <Tooltip text="Điều chỉnh" />
-                    </tooltip>
-                </Button>
-                <Button onAction="#handleFilter" styleClass="icon-button">
-                    <graphic>
-                        <ImageView fitHeight="30" fitWidth="30">
-                            <Image url="@icon/fliter.png" />
-                        </ImageView>
-                    </graphic>
-                    <tooltip>
-                        <Tooltip text="Bộ lọc" />
-                    </tooltip>
-                </Button>
-                <Button onAction="#handleInsert" styleClass="icon-button">
-                    <graphic>
-                        <ImageView fitHeight="30" fitWidth="30">
-                            <Image url="@icon/insert.png" />
-                        </ImageView>
-                    </graphic>
-                    <tooltip>
-                        <Tooltip text="Chèn" />
-                    </tooltip>
-                </Button>
-                <Button onAction="#handleflip_and_rotate" styleClass="icon-button">
-                    <graphic>
-                        <ImageView fitHeight="30" fitWidth="30">
-                            <Image url="@icon/rotate.png" />
-                        </ImageView>
-                    </graphic>
-                    <tooltip>
-                        <Tooltip text="mở ảnh mới" />
-                    </tooltip>
-                </Button>
-                <Button onAction="#AI" styleClass="icon-button">
-                    <graphic>
-                        <ImageView fitHeight="30" fitWidth="30">
-                            <Image url="@icon/ai.png" />
-                        </ImageView>
-                    </graphic>
-                    <tooltip>
-                        <Tooltip text="Thoát" />
-                    </tooltip>
-                </Button>
-                <Button onAction="#handleInsertimage" styleClass="icon-button">
-                    <graphic>
-                        <ImageView fitHeight="30" fitWidth="30">
-                            <Image url="@icon/imagefs.png" />
-                        </ImageView>
-                    </graphic>
-                    <tooltip>
-                        <Tooltip text="Thoát" />
-                    </tooltip>
-                </Button>
-                <Button onAction="#handleExit" styleClass="icon-button">
-                    <graphic>
-                        <ImageView fitHeight="30" fitWidth="30">
-                            <Image url="@icon/exit.png" />
-                        </ImageView>
-                    </graphic>
-                    <tooltip>
-                        <Tooltip text="Thoát" />
-                    </tooltip>
-                </Button>
-            </HBox>
-
+            <children>
+                <HBox alignment="CENTER" prefHeight="80.0" prefWidth="1200.0" spacing="8" styleClass="toolbar">
+                    <children>
+                        <Button onAction="#handleOpenImage" styleClass="icon-button">
+                            <graphic><ImageView fitHeight="28" fitWidth="28"><image><Image url="@icon/add.png"/></image></ImageView></graphic>
+                            <tooltip><Tooltip text="Mo anh moi"/></tooltip>
+                        </Button>
+                        <Button onAction="#handleUndo" styleClass="icon-button">
+                            <graphic><ImageView fitHeight="28" fitWidth="28"><image><Image url="@icon/redo.png"/></image></ImageView></graphic>
+                            <tooltip><Tooltip text="Quay lai 1 buoc"/></tooltip>
+                        </Button>
+                        <Button onAction="#handleRedo" styleClass="icon-button">
+                            <graphic><ImageView fitHeight="28" fitWidth="28"><image><Image url="@icon/next.png"/></image></ImageView></graphic>
+                            <tooltip><Tooltip text="Tien len 1 buoc"/></tooltip>
+                        </Button>
+                        <Region prefWidth="10"/>
+                        <Button onAction="#handleDraw" styleClass="icon-button">
+                            <graphic><ImageView fitHeight="28" fitWidth="28"><image><Image url="@icon/pencil.png"/></image></ImageView></graphic>
+                            <tooltip><Tooltip text="Ve"/></tooltip>
+                        </Button>
+                        <Button onAction="#handleCrop" styleClass="icon-button">
+                            <graphic><ImageView fitHeight="28" fitWidth="28"><image><Image url="@icon/crop.png"/></image></ImageView></graphic>
+                            <tooltip><Tooltip text="Cat anh"/></tooltip>
+                        </Button>
+                        <Button onAction="#handleResize" styleClass="icon-button">
+                            <graphic><ImageView fitHeight="28" fitWidth="28"><image><Image url="@icon/resize.png"/></image></ImageView></graphic>
+                            <tooltip><Tooltip text="Thay doi kich co"/></tooltip>
+                        </Button>
+                        <Button onAction="#handleAdjust" styleClass="icon-button">
+                            <graphic><ImageView fitHeight="28" fitWidth="28"><image><Image url="@icon/brightness.png"/></image></ImageView></graphic>
+                            <tooltip><Tooltip text="Do sang"/></tooltip>
+                        </Button>
+                        <Button onAction="#handleFilter" styleClass="icon-button">
+                            <graphic><ImageView fitHeight="28" fitWidth="28"><image><Image url="@icon/fliter.png"/></image></ImageView></graphic>
+                            <tooltip><Tooltip text="Bo loc"/></tooltip>
+                        </Button>
+                        <Button onAction="#handleInsert" styleClass="icon-button">
+                            <graphic><ImageView fitHeight="28" fitWidth="28"><image><Image url="@icon/insert.png"/></image></ImageView></graphic>
+                            <tooltip><Tooltip text="Chen van ban"/></tooltip>
+                        </Button>
+                        <Button onAction="#handleflip_and_rotate" styleClass="icon-button">
+                            <graphic><ImageView fitHeight="28" fitWidth="28"><image><Image url="@icon/rotate.png"/></image></ImageView></graphic>
+                            <tooltip><Tooltip text="Lat / Xoay"/></tooltip>
+                        </Button>
+                        <Button onAction="#handleInsertimage" styleClass="icon-button">
+                            <graphic><ImageView fitHeight="28" fitWidth="28"><image><Image url="@icon/imagefs.png"/></image></ImageView></graphic>
+                            <tooltip><Tooltip text="Chen anh"/></tooltip>
+                        </Button>
+                        <Button onAction="#AI" styleClass="icon-button">
+                            <graphic><ImageView fitHeight="28" fitWidth="28"><image><Image url="@icon/ai.png"/></image></ImageView></graphic>
+                            <tooltip><Tooltip text="AI xoa phong"/></tooltip>
+                        </Button>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Button onAction="#handleExit" styleClass="icon-button">
+                            <graphic><ImageView fitHeight="28" fitWidth="28"><image><Image url="@icon/exit.png"/></image></ImageView></graphic>
+                            <tooltip><Tooltip text="Thoat ve trang du an"/></tooltip>
+                        </Button>
+                    </children>
+                </HBox>
+            </children>
         </VBox>
     </top>
-
     <center>
-        <StackPane>
-            <ImageView fx:id="mainImageView" fitHeight="350" fitWidth="645.0" preserveRatio="true">
-                    <image>
-                        <Image url="@icon/anhsuademo.jpg" />
-                    </image>
-            </ImageView>
+        <StackPane styleClass="canvas-area">
+            <children>
+                <ImageView fx:id="mainImageView" fitHeight="540" fitWidth="860.0" preserveRatio="true">
+                    <image><Image url="@icon/anhsuademo.jpg"/></image>
+                </ImageView>
+            </children>
         </StackPane>
     </center>
     <bottom>
-        <VBox alignment="CENTER_RIGHT" prefHeight="76.0" prefWidth="942.0" styleClass="bottom-toolbar">
-            <Button onAction="#handleSave" styleClass="save-button">
-                <graphic>
-                    <ImageView fitHeight="20" fitWidth="20">
-                        <Image url="@icon/save.png" />
-                    </ImageView>
-                </graphic>
-                <tooltip>
-                    <Tooltip text="Lưu ảnh" />
-                </tooltip>
-            </Button>
-        </VBox>
+        <HBox alignment="CENTER_LEFT" prefHeight="90.0" prefWidth="1200.0" spacing="12" styleClass="bottom-toolbar">
+            <children>
+                <VBox alignment="CENTER" spacing="4" styleClass="thumb-card">
+                    <children>
+                        <Label styleClass="thumb-label" text="Anh goc"/>
+                        <ImageView fx:id="thumbOriginal" fitHeight="58" fitWidth="85" preserveRatio="true"/>
+                    </children>
+                </VBox>
+                <VBox alignment="CENTER" spacing="4" styleClass="thumb-card">
+                    <children>
+                        <Label styleClass="thumb-label" text="Hien tai"/>
+                        <ImageView fx:id="thumbCurrent" fitHeight="58" fitWidth="85" preserveRatio="true"/>
+                    </children>
+                </VBox>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button onAction="#handleSave" styleClass="save-button" text="  Luu anh">
+                    <graphic><ImageView fitHeight="18" fitWidth="18"><image><Image url="@icon/save.png"/></image></ImageView></graphic>
+                    <tooltip><Tooltip text="Luu anh ra file"/></tooltip>
+                </Button>
+            </children>
+        </HBox>
     </bottom>
     <left>
-        <VBox alignment="CENTER" prefHeight="447.0" prefWidth="187.0" spacing="10.0" BorderPane.alignment="CENTER">
+        <VBox alignment="CENTER" prefHeight="560.0" prefWidth="200.0" spacing="10.0" styleClass="left-panel" BorderPane.alignment="CENTER">
             <children>
-                <!--            <Button mnemonicParsing="false" prefHeight="26.0" prefWidth="105.0" text="quay lại 1 bước " textAlignment="CENTER" />-->
-                <!--            <Button mnemonicParsing="false" prefHeight="26.0" prefWidth="105.0" text="tiến lên 1 bước" textAlignment="CENTER"/>-->
                 <StackPane>
-                    <MenuButton fx:id="Flip_and_rotate" styleClass="dynamic-menu" text="Chọn hành động" visible="false">
-                        <items>
-                            <MenuItem onAction= "#flip_v" text="Lật ngang" />
-                            <MenuItem onAction= "#flip_h" text="Lật dọc" />
-                            <MenuItem onAction= "#left_rot" text="Xoay trái 90 độ" />
-                            <MenuItem onAction= "#right_rot" text="Xoay phải 90 độ" />
-                        </items>
-                    </MenuButton>
-                    <MenuButton fx:id="resizeOptionsMenu" styleClass="dynamic-menu" text="Chọn hình dáng" visible="false">
-                        <items>
-                            <MenuItem text=" ảnh vuông " />
-                            <MenuItem text=" ảnh chữ nhật " />
-                        </items>
-                    </MenuButton>
-                    <MenuButton fx:id="fliterOptionsMenu" styleClass="dynamic-menu" text="Chọn bộ lọc" visible="false">
-                        <items>
-                            <MenuItem text=" bộ lọc Hàn Quốc " />
-                            <MenuItem text=" Bộ lọc dân chơi " />
-                            <MenuItem text=" bộ lọc dân kiến trúc " />
-                        </items>
-                    </MenuButton>
-                    <MenuButton fx:id="insertOptionsMenu" styleClass="dynamic-menu" text="chọn loại chèn" visible="false">
-                        <items>
-                            <MenuItem text=" chèn văn bản " />
-                            <MenuItem text=" chỉnh ảnh " />
-                        </items>
-                    </MenuButton>
+                    <children>
+                        <MenuButton fx:id="Flip_and_rotate" styleClass="dynamic-menu" text="Lat / Xoay" visible="false">
+                            <items>
+                                <MenuItem onAction="#flip_v" text="Lat ngang"/>
+                                <MenuItem onAction="#flip_h" text="Lat doc"/>
+                                <MenuItem onAction="#left_rot" text="Xoay trai 90"/>
+                                <MenuItem onAction="#right_rot" text="Xoay phai 90"/>
+                            </items>
+                        </MenuButton>
+                        <MenuButton fx:id="resizeOptionsMenu" styleClass="dynamic-menu" text="Chon hinh dang" visible="false">
+                            <items>
+                                <MenuItem text="Anh vuong"/>
+                                <MenuItem text="Anh chu nhat"/>
+                            </items>
+                        </MenuButton>
+                        <MenuButton fx:id="fliterOptionsMenu" styleClass="dynamic-menu" text="Chon bo loc" visible="false">
+                            <items>
+                                <MenuItem text="Bo loc Han Quoc"/>
+                                <MenuItem text="Bo loc dan choi"/>
+                                <MenuItem text="Bo loc kien truc"/>
+                            </items>
+                        </MenuButton>
+                        <MenuButton fx:id="insertOptionsMenu" styleClass="dynamic-menu" text="Chon loai chen" visible="false">
+                            <items>
+                                <MenuItem text="Chen van ban"/>
+                                <MenuItem text="Chinh anh"/>
+                            </items>
+                        </MenuButton>
+                    </children>
                 </StackPane>
                 <StackPane>
                     <children>
-                        <!--take input-->
-                        <HBox fx:id="new_text" alignment="CENTER" prefHeight="30.0" prefWidth="184.0" visible="false">
+                        <HBox fx:id="new_text" alignment="CENTER" prefHeight="36.0" prefWidth="184.0" visible="false">
                             <children>
-                                <VBox alignment="CENTER" prefHeight="200.0" prefWidth="100.0">
-                                    <children>
-                                        <Button text="thay đổi text" onAction="#input_string" />
-                                    </children>
-                                </VBox>
+                                <Button text="Doi noi dung text" onAction="#input_string" styleClass="dynamic-menu"/>
                             </children>
                         </HBox>
-                        <!--cut-->
-                        <HBox fx:id="cropOptionsMenu" alignment="CENTER" prefHeight="30.0" prefWidth="184.0" visible="false">
+                        <HBox fx:id="cropOptionsMenu" alignment="CENTER" prefHeight="36.0" prefWidth="184.0" visible="false">
                             <children>
-                                <VBox alignment="CENTER" prefHeight="200.0" prefWidth="100.0">
-                                    <children>
-                                        <Button text="Lưu" onAction="#save_crop" />
-                                    </children>
-                                </VBox>
+                                <Button text="Luu vung cat" onAction="#save_crop" styleClass="dynamic-menu"/>
                             </children>
                         </HBox>
-                        <!--brighness-->
-                        <HBox fx:id="brightness1" alignment="CENTER" prefHeight="30.0" prefWidth="184.0" visible="false">
+                        <HBox fx:id="brightness1" alignment="CENTER" prefHeight="36.0" prefWidth="184.0" spacing="6" visible="false">
                             <children>
-                                <VBox alignment="CENTER" prefHeight="200.0" prefWidth="100.0">
-                                    <children>
-                                        <Label prefHeight="26.0" prefWidth="52.0" text="Độ sáng :" />
-                                    </children>
-                                </VBox>
-                                <VBox alignment="CENTER" prefHeight="200.0" prefWidth="100.0">
-                                    <children>
-                                        <Slider fx:id="briness" prefHeight="14.0" prefWidth="100.0" />
-                                    </children>
-                                </VBox>
-                                <VBox alignment="CENTER" prefHeight="200.0" prefWidth="100.0">
-                                    <children>
-                                        <Button text="Lưu" onAction="#save_image" />
-                                    </children>
-                                </VBox>
+                                <Label prefWidth="55" text="Do sang:" styleClass="panel-label"/>
+                                <Slider fx:id="briness" prefHeight="14.0" prefWidth="82.0"/>
+                                <Button text="OK" onAction="#save_image" styleClass="dynamic-menu"/>
                             </children>
                         </HBox>
-                        <HBox fx:id="draw1" alignment="CENTER" prefHeight="30.0" prefWidth="184.0" spacing="10.0" visible="false">
+                        <HBox fx:id="draw1" alignment="CENTER" prefHeight="36.0" prefWidth="184.0" spacing="6" visible="false">
                             <children>
-                                <Label prefHeight="26.0" prefWidth="46.0" text="Cỡ nút :" />
-                                <Slider fx:id="getsize" prefHeight="14.0" prefWidth="100.0" />
+                                <Label prefWidth="55" text="Co nut:" styleClass="panel-label"/>
+                                <Slider fx:id="getsize" prefHeight="14.0" prefWidth="100.0"/>
                             </children>
                         </HBox>
                     </children>
                 </StackPane>
                 <StackPane>
                     <children>
-                        <HBox fx:id="draw2" alignment="CENTER" prefHeight="30.0" prefWidth="184.0" spacing="10.0" visible="false">
+                        <HBox fx:id="draw2" alignment="CENTER" prefHeight="36.0" prefWidth="184.0" spacing="6" visible="false">
                             <children>
-                                <Label prefHeight="26.0" prefWidth="50.0" text="Độ mờ :" />
-                                <Slider fx:id="opacity" prefHeight="14.0" prefWidth="100.0" />
+                                <Label prefWidth="55" text="Do mo:" styleClass="panel-label"/>
+                                <Slider fx:id="opacity" prefHeight="14.0" prefWidth="100.0"/>
                             </children>
                         </HBox>
-                        <HBox fx:id="brightness2" alignment="CENTER" prefHeight="30.0" prefWidth="184.0" visible="false">
+                        <HBox fx:id="brightness2" alignment="CENTER" prefHeight="36.0" prefWidth="184.0" visible="false">
                             <children>
-                                <Button text="Lưu" onAction="#save_insert_image" />
+                                <Button text="Luu anh chen" onAction="#save_insert_image" styleClass="dynamic-menu"/>
                             </children>
                         </HBox>
                     </children>
                 </StackPane>
                 <StackPane>
                     <children>
-                        <HBox fx:id="brightness3" alignment="CENTER" prefHeight="30.0" prefWidth="184.0" visible="false">
+                        <HBox fx:id="brightness3" alignment="CENTER" prefHeight="36.0" prefWidth="184.0" visible="false">
                             <children>
-                                <VBox alignment="CENTER" prefHeight="200.0" prefWidth="100.0">
-                                    <children>
-                                        <Slider prefHeight="14.0" prefWidth="100.0" />
-                                    </children>
-                                </VBox>
+                                <Slider prefHeight="14.0" prefWidth="100.0"/>
                             </children>
                         </HBox>
                     </children>
                 </StackPane>
-                <HBox fx:id="draw4" alignment="CENTER" prefHeight="99.0" prefWidth="187.0" spacing="10.0" visible="false">
+                <HBox fx:id="draw4" alignment="CENTER" prefHeight="40.0" prefWidth="190.0" spacing="8" visible="false">
                     <children>
-                        <Label prefHeight="18.0" prefWidth="70.0" text="Chọn màu : " />
-                        <ColorPicker fx:id="colorPicker" onAction="#handleColorChange" prefHeight="25.0" prefWidth="100.0" />
+                        <Label prefWidth="70" text="Chon mau:" styleClass="panel-label"/>
+                        <ColorPicker fx:id="colorPicker" onAction="#handleColorChange" prefHeight="28.0" prefWidth="95.0"/>
                     </children>
                 </HBox>
-                <Button fx:id="draw9" text="Tẩy" onAction="#change_erase" />
+                <Button fx:id="draw9" text="Tay" onAction="#change_erase" styleClass="dynamic-menu"/>
             </children>
         </VBox>
     </left>
     <right>
-        <VBox prefHeight="447.0" prefWidth="165.0" BorderPane.alignment="CENTER" />
+        <VBox prefHeight="560.0" prefWidth="10.0" BorderPane.alignment="CENTER" style="-fx-background-color:#1a1a2e;"/>
     </right>
 </BorderPane>

@@ -1,126 +1,172 @@
 package duanapp.main;
-import java.io.*;
-import javax.swing.*;
 
 import javafx.animation.FadeTransition;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.control.Button;
-import javafx.scene.Scene;
 import javafx.stage.Stage;
-import javafx.fxml.FXMLLoader;
-import java.io.IOException;
-
 import javafx.util.Duration;
-import org.opencv.core.Core;
+
 import java.io.File;
-import java.net.URL;
+import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.text.SimpleDateFormat;
 import java.util.Date;
-public class MyController {
-    @FXML
-    private Button btnAddProject;
 
-    @FXML
-    private ImageView imageProject1, imageProject2, imageProject3;
-    public Label time1,time2,time3;
-    public int got_somthing=0;
-    public String gotthis="src/main/resources/duanapp/main/icon/anhsuademo.jpg";
-    SimpleDateFormat sdf = new SimpleDateFormat("HH:mm dd/MM/yyyy");
-    public String oneurl=gotthis,twourl=gotthis,threeurl=gotthis;
+/**
+ * Controller for the project-selection screen (projects.fxml).
+ *
+ * <p>Loads the three most-recently-modified images from the user's save
+ * directory and displays them as clickable thumbnails.
+ */
+public class MyController {
+
+    // -------------------------------------------------------------------------
+    // Constants
+    // -------------------------------------------------------------------------
+
+    /** Default image shown when no recent files are available. */
+    private static final String PLACEHOLDER_PATH =
+            Paths.get(System.getProperty("user.dir"), "src", "main", "resources", "duanapp", "main", "icon", "anhsuademo.jpg").toAbsolutePath().toString();
+
+    /**
+     * Directory where recently saved images are loaded from.
+     * Uses a "savehere" folder inside the project's current working directory.
+     */
+    private static final String SAVE_DIRECTORY =
+            Paths.get(System.getProperty("user.dir"), "savehere").toAbsolutePath().toString();
+
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("HH:mm dd/MM/yyyy");
+
+    // -------------------------------------------------------------------------
+    // FXML fields
+    // -------------------------------------------------------------------------
+
+    @FXML private Button    btnAddProject;
+    @FXML private ImageView imageProject1;
+    @FXML private ImageView imageProject2;
+    @FXML private ImageView imageProject3;
+    @FXML public  Label     time1;
+    @FXML public  Label     time2;
+    @FXML public  Label     time3;
+
+    // -------------------------------------------------------------------------
+    // State
+    // -------------------------------------------------------------------------
+
+    /** URLs of the three recent images (fallback to placeholder). */
+    private String recentUrl1 = PLACEHOLDER_PATH;
+    private String recentUrl2 = PLACEHOLDER_PATH;
+    private String recentUrl3 = PLACEHOLDER_PATH;
+
+    // -------------------------------------------------------------------------
+    // Initialisation
+    // -------------------------------------------------------------------------
+
     @FXML
     public void initialize() {
-        // Tải hình ảnh vào các ImageView
-        loadImages();
+        loadRecentImages();
 
-        // Nút Dự án mới: mở chế độ chỉnh sửa
-        btnAddProject.setOnAction(event -> openEditMode(gotthis));
+        btnAddProject.setOnAction(event -> openEditorWithPath(PLACEHOLDER_PATH));
 
-        // Các dự án gần đây: mở chế độ chỉnh sửa tương ứng
-        imageProject1.setOnMouseClicked(event -> openEditMode(oneurl) );
-        imageProject2.setOnMouseClicked(event -> openEditMode(twourl));
-        imageProject3.setOnMouseClicked(event -> openEditMode(threeurl));
+        imageProject1.setOnMouseClicked(event -> openEditorWithUrl(recentUrl1));
+        imageProject2.setOnMouseClicked(event -> openEditorWithUrl(recentUrl2));
+        imageProject3.setOnMouseClicked(event -> openEditorWithUrl(recentUrl3));
     }
 
-    private void loadImages() {
-        try {
-            // Đường dẫn thư mục trên hệ thống
-            File folder = new File("C:\\Users\\dat\\Downloads\\savehere");
-            if (!folder.exists() || !folder.isDirectory()) {
-                System.out.println("Thư mục không tồn tại hoặc không phải là thư mục!");
-                return;
-            }
+    // -------------------------------------------------------------------------
+    // Private helpers
+    // -------------------------------------------------------------------------
 
-            // Lấy danh sách file và sắp xếp theo thời gian chỉnh sửa giảm dần
-            File[] imageFiles = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".png") || name.toLowerCase().endsWith(".jpg"));
-            if (imageFiles == null || imageFiles.length == 0) {
-                System.out.println("Không tìm thấy file ảnh!");
-                return;
-            }
+    /** Scans {@link #SAVE_DIRECTORY} and populates the three thumbnail ImageViews. */
+    private void loadRecentImages() {
+        File folder = new File(SAVE_DIRECTORY);
+        if (!folder.exists() || !folder.isDirectory()) {
+            System.out.println("Thư mục lưu ảnh không tồn tại: " + SAVE_DIRECTORY);
+            return;
+        }
 
-            Arrays.sort(imageFiles, Comparator.comparingLong(File::lastModified).reversed());
+        File[] imageFiles = folder.listFiles(
+                (dir, name) -> name.toLowerCase().endsWith(".png")
+                            || name.toLowerCase().endsWith(".jpg")
+                            || name.toLowerCase().endsWith(".jpeg"));
 
-            // Load 3 file ảnh mới nhất
-            if (imageFiles.length > 0) {
-                imageProject1.setImage(new Image(imageFiles[0].toURI().toString()));
-                oneurl=imageProject1.getImage().getUrl();
-                time1.setText(sdf.format(new Date(imageFiles[0].lastModified())));
-            }
-            if (imageFiles.length > 1) {
-                imageProject2.setImage(new Image(imageFiles[1].toURI().toString()));
-                twourl=imageProject2.getImage().getUrl();
-                time2.setText(sdf.format(new Date(imageFiles[1].lastModified())));
-            }
-            if (imageFiles.length > 2) {
-                imageProject3.setImage(new Image(imageFiles[2].toURI().toString()));
-                threeurl=imageProject3.getImage().getUrl();
-                time3.setText(sdf.format(new Date(imageFiles[2].lastModified())));
-            }
+        if (imageFiles == null || imageFiles.length == 0) {
+            System.out.println("Không tìm thấy ảnh trong: " + SAVE_DIRECTORY);
+            return;
+        }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        Arrays.sort(imageFiles, Comparator.comparingLong(File::lastModified).reversed());
+
+        if (imageFiles.length > 0) {
+            imageProject1.setImage(new Image(imageFiles[0].toURI().toString()));
+            recentUrl1 = imageFiles[0].getAbsolutePath(); // store raw path, not URI
+            if (time1 != null) time1.setText(DATE_FORMAT.format(new Date(imageFiles[0].lastModified())));
+        }
+        if (imageFiles.length > 1) {
+            imageProject2.setImage(new Image(imageFiles[1].toURI().toString()));
+            recentUrl2 = imageFiles[1].getAbsolutePath();
+            if (time2 != null) time2.setText(DATE_FORMAT.format(new Date(imageFiles[1].lastModified())));
+        }
+        if (imageFiles.length > 2) {
+            imageProject3.setImage(new Image(imageFiles[2].toURI().toString()));
+            recentUrl3 = imageFiles[2].getAbsolutePath();
+            if (time3 != null) time3.setText(DATE_FORMAT.format(new Date(imageFiles[2].lastModified())));
         }
     }
-    public void openNewView() {
+
+    /**
+     * Opens the editor with an absolute file path (as stored in {@link #recentUrl1} etc.).
+     * Paths are stored as raw absolute paths, not URIs, to avoid encoding issues with
+     * spaces and special characters when passed to OpenCV's {@code imread}.
+     */
+    private void openEditorWithUrl(String filePath) {
+        if (filePath == null || filePath.equals(PLACEHOLDER_PATH)) {
+            openEditorWithPath(PLACEHOLDER_PATH);
+            return;
+        }
+        openEditorWithPath(filePath);
+    }
+
+    /**
+     * Sets the default image path on {@link MainController} and transitions to
+     * the editor screen with a fade animation.
+     */
+    private void openEditorWithPath(String filePath) {
+        MainController.defaultImagePath = filePath;
+        openEditorView();
+        // Reset after opening so the next "new project" click starts clean
+        MainController.defaultImagePath = PLACEHOLDER_PATH;
+    }
+
+    /** Loads main-view.fxml and replaces the current scene with a fade transition. */
+    public void openEditorView() {
         try {
-            // Tải giao diện chỉnh sửa ảnh từ file FXML
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/duanapp/main/main-view.fxml"));
             Scene newScene = new Scene(loader.load());
 
-            // Lấy stage hiện tại
-            Stage currentStage = (Stage) btnAddProject.getScene().getWindow();
+            Stage stage = (Stage) btnAddProject.getScene().getWindow();
 
-            // Tạo hiệu ứng Fade Out cho Scene hiện tại
-            FadeTransition fadeOut = new FadeTransition(Duration.seconds(0.5), currentStage.getScene().getRoot());
-            fadeOut.setFromValue(1.0); // Độ mờ ban đầu
-            fadeOut.setToValue(0.0);   // Độ mờ cuối cùng
-            fadeOut.setOnFinished(event -> {
-                // Chuyển sang Scene mới
-                currentStage.setScene(newScene);
-                // Tạo hiệu ứng Fade In cho Scene mới
+            FadeTransition fadeOut = new FadeTransition(Duration.seconds(0.5), stage.getScene().getRoot());
+            fadeOut.setFromValue(1.0);
+            fadeOut.setToValue(0.0);
+            fadeOut.setOnFinished(e -> {
+                stage.setScene(newScene);
                 FadeTransition fadeIn = new FadeTransition(Duration.seconds(0.5), newScene.getRoot());
-                fadeIn.setFromValue(0.0); // Độ mờ ban đầu
-                fadeIn.setToValue(1.0);   // Độ mờ cuối cùng
+                fadeIn.setFromValue(0.0);
+                fadeIn.setToValue(1.0);
                 fadeIn.play();
             });
-            fadeOut.play(); // Bắt đầu hiệu ứng Fade Out
+            fadeOut.play();
+
         } catch (Exception e) {
-            System.err.println("Error: " + e);
+            System.err.println("Lỗi khi mở màn hình chỉnh sửa: " + e.getMessage());
+            e.printStackTrace();
         }
-    }
-    private void openEditMode(String projectName) {
-            String filePath =gotthis;
-            if(projectName!=gotthis) {
-                filePath = projectName.replace("file:/", "");
-                System.out.println(filePath);
-            }
-            MainController.default_image= filePath;
-            openNewView();
-            MainController.default_image= gotthis;
     }
 }
